@@ -46,15 +46,31 @@
   const handleSelect = (key: string, keyPath: string[]) => {
     console.log(key, keyPath)
   }
+
+  onMounted(() => {
+    // console.log(123)
+    // const header = document.querySelector('.el-header')
+    // const footer = document.querySelector('.el-footer')
+    // const main = document.querySelector('.el-main')
+    // console.log(header.style)
+    // main.style.height = `calc(100vh - ${header.style.height} - ${footer.style.height})`
+
+
+
+  })
 </script>
 
 <style scoped lang="scss">
   .layout {
     &-logo {
-      font-size: 32px;
+      font-size: 25px;
     }
     .flex-grow {
       flex-grow: 1;
+    }
+
+    .el-main {
+      height: calc(100vh - 120px)
     }
 
     .el-footer {
