@@ -10,19 +10,21 @@
         >
           <el-menu-item index="0" class="layout-logo">I18n Platform</el-menu-item>
           <div class="flex-grow" />
-          <el-menu-item index="1">Processing Center</el-menu-item>
-          <el-sub-menu index="2">
-            <template #title>Workspace</template>
-            <el-menu-item index="2-1">item one</el-menu-item>
-            <el-menu-item index="2-2">item two</el-menu-item>
-            <el-menu-item index="2-3">item three</el-menu-item>
-            <el-sub-menu index="2-4">
-              <template #title>item four</template>
-              <el-menu-item index="2-4-1">item one</el-menu-item>
-              <el-menu-item index="2-4-2">item two</el-menu-item>
-              <el-menu-item index="2-4-3">item three</el-menu-item>
-            </el-sub-menu>
-          </el-sub-menu>
+          <template v-for="item in menuList">
+            <el-menu-item v-if="!item.children" :index="item.index">
+              <NuxtLink :to="item.path">{{ item.label }}</NuxtLink>
+            </el-menu-item>
+            <template v-else>
+              <el-sub-menu :index="item.index">
+                <template #title>{{ item.label }}</template>
+                <el-menu-item v-for="child in item.children" :index="child.index">
+                  <NuxtLink :to="child.path">{{ child.label }}</NuxtLink>
+                </el-menu-item>
+              </el-sub-menu>
+            </template>
+            
+          </template>
+          
         </el-menu>
       </el-header>
 
@@ -42,9 +44,51 @@
 <script lang="ts" setup>
   import { ref } from 'vue'
 
-  const activeIndex = ref('1')  
+  interface MenuListType {
+    index: string
+    label: string
+    path: string
+    children?: MenuListType[]
+  }
+
+  const menuList = ref<MenuListType[]>([
+    {
+      index: '1',
+      label: '应用列表',
+      path: '/app-list'
+    },
+    {
+      index: '2',
+      label: 'Diff',
+      path: '/diff'
+    },
+    // {
+    //   index: '3',
+    //   label: 'Diff',
+    //   path: '/diff',
+    //   children: [
+    //     {
+    //       index: '3-1',
+    //       label: 'Diff1',
+    //       path: '/diff'
+    //     }
+    //   ]
+    // }
+  ])
+  const activeIndex = ref('1')
+
   const handleSelect = (key: string, keyPath: string[]) => {
     console.log(key, keyPath)
+    const menu = menuList.value.filter(item => {
+      if(item.children && item.children.length > 0) {
+        for(const child of item.children) {
+          return child.index == key
+        }
+      }
+        return item.index === key
+    })
+    if(menu.length === 0) return
+
   }
 
   onMounted(() => {

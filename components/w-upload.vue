@@ -1,7 +1,7 @@
 <template>
   <div class="w-upload">
     <el-button type="primary" class="w-upload-button" @click="handleUpload">
-      上传
+      {{ props.buttonText }}
       <el-icon  class="w-upload-button-icon"><UploadFilled /></el-icon>
     </el-button>
     
@@ -16,7 +16,7 @@
       {{ item.file.name }}
       </el-tag>
     </ul>
-    <input ref="upload" class="w-upload-input" type="file" />
+    <input ref="upload" class="w-upload-input" type="file" :accept="props.accept" />
   </div>
 
   
@@ -24,11 +24,16 @@
 
 <script setup lang="ts">
   import { ref } from 'vue'
+  import type { ButtonProps } from 'element-plus'
 
   const props = defineProps({
     type: {
       type: String,
       default: 'button'
+    },
+    buttonText: {
+      type: String,
+      default: '上传'
     },
     multiple: {
       type: Boolean,
@@ -71,7 +76,7 @@
         const fileContent = event.target.result;
         fileList.value.push({ file, fileContent })
         // 在控制台输出文件内容
-        console.log(fileList.value);
+        // console.log(fileList.value);
         props.fileUpload(fileList.value)
       });
     
@@ -99,9 +104,16 @@
       opacity: 0;
     }
     &-list {
+      position: absolute;
+      top: 40px;
+      right: 0;
       margin: 5px 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
       &-item {
+        margin: 2px 0;
         list-style: none;
         animation: ease-in 0.3s;
         transition: all 0.3s ease-in;

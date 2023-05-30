@@ -15,3 +15,10 @@
     nuxtApp.vueApp.component(key, component)
   }
 </script>
+
+<style lang="scss">
+  a {
+    text-decoration: none;
+  }
+  
+</style>

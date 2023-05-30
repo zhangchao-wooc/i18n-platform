@@ -123,7 +123,7 @@
     &-tabs {
       &-pane {
         &-upload {
-          text-align: right;
+          float: right;
         }
         ::v-deep(.el-table .warning-row) {
           --el-table-tr-bg-color: var(--el-color-warning-light-9);

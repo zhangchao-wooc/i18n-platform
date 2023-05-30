@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   elementPlus: {
     icon: 'ElIcon'
   },
+  // components: false,
   css: ['normalize.css'],
   vite: {
     css: {
