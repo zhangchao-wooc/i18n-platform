@@ -33,7 +33,7 @@
           />
         </el-select>
 
-        <el-button type="primary" class="diff-upload-export" @click="exportFile">
+        <el-button type="primary" class="diff-upload-export" @click="exportFileToLocal">
           导出增量文件
           <el-icon  class="diff-upload-button-icon"><Folder /></el-icon>
         </el-button>
@@ -54,33 +54,24 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
   import { diffJson } from '../../utils/diff'
+  import { exportFile } from '../../utils/exportFile'
+
+
+  definePageMeta({
+    title: 'Diff - i18n-platform'
+  })
 
   interface FileListType {
     data: Record<string, string>
     type: string
     name: string
   }
-  const accept = ref('.xml,.json')
-  const fileList = ref<FileListType[]>([])
-  const diffResult = ref('')
-  const dialogVisible = ref(false)
-  const exportFileType = ref('.json')
-  const exportFileTypeList = ref<Record<string, string>[]>([
+
+  const initExportDiffTypeList = [
     {
-      label: 'json',
-      value: '.json'
+      label: '全部数据',
+      value: 'all'
     },
-    {
-      label: 'xml',
-      value: '.xml'
-    },
-    {
-      label: 'xlsx',
-      value: '.xlsx'
-    },
-  ])
-  const exportDiffType = ref<'add' | 'remove' | 'change' | 'empty'>('add')
-  const exportDiffTypeList = ref<Record<string, string>[]>([
     {
       label: '增量数据',
       value: 'add'
@@ -97,8 +88,38 @@
       label: '空数据',
       value: 'empty'
     }
-  ])
+  ]
 
+  const initExportFileTypeList = [
+    {
+      label: 'json',
+      value: '.json'
+    },
+    {
+      label: 'xml',
+      value: '.xml'
+    },
+    {
+      label: 'xlsx',
+      value: '.xlsx'
+    },
+  ]
+
+  const initAccept = '.xml,.json,.xlsx'
+  const fileTypeMap: Record<string, string> = {
+    'application/json': 'json',
+    'text/xml': 'xml',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx'
+  }
+
+  const accept = ref(initAccept)
+  const fileList = ref<FileListType[]>([])
+  const diffResult = ref('')
+  const dialogVisible = ref(false)
+  const exportFileType = ref('.json')
+  const exportFileTypeList = ref<Record<string, string>[]>(initExportFileTypeList)
+  const exportDiffType = ref<'add' | 'remove' | 'change' | 'empty' | 'all'>('add')
+  const exportDiffTypeList = ref<Record<string, string>[]>(initExportDiffTypeList)
 
   const buttonText = computed(() => {
     switch(fileList.value.length) {
@@ -109,7 +130,7 @@
     }
   })
 
-  const fileUpload = (file: any) => {
+  const fileUpload = async (file: any) => {
     
     const loading = ElLoading.service({
       lock: true,
@@ -118,8 +139,31 @@
     })
 
     const fielData = file[file.length - 1]
-    const type = fielData['file']['type']
-    const data = JSON.parse(fielData['fileContent'])
+    const type = fileTypeMap[fielData['file']['type']]
+    
+    if(typeof type !== 'string') return ElNotification({
+        title: `文件类型错误`,
+        message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${fielData['file']['type']}`),
+        type: 'error',
+      })
+    
+    let data: Record<string, string> = {}
+
+    if(type === 'json') {
+      data = JSON.parse(fielData['fileContent'])
+    }
+
+    if(type === 'xml') {
+      const result = await parserXmlData('xml', fielData['fileContent'])
+      console.log('xml', result)
+      data = result
+    }
+
+    if(type === 'xlsx') {
+      // const result = await parserXmlData('xml', fielData['fileContent'])
+      console.log('xlsx', type)
+    }
+    
     const name = fielData['file']['name'].split('.')[0]
 
     fileList.value.push({
@@ -135,34 +179,53 @@
       
     }
 
-    loading.close()
+    setTimeout(() => {
+      loading.close()
+    }, 1000)
+  }
+
+  const parserXmlData = async (fileType: 'xml' | 'xlsx', fileData: string) => {
+    const { data, pending, error } = await useFetch('/api/parser', {
+      method: "post",
+      body: {
+        fileType,
+        fileData
+      }
+    })
+    if (!error.value) {
+      return data.value?.data || {}
+    } else {
+      console.log(error.value)
+      return {}
+    }
+  }
+
+  const exportFileToLocal = async () => {
+    const { data, pending, error } = await useFetch('/api/convert', {
+      method: "post",
+      body: {
+        data: JSON.parse(diffResult.value),
+        type: 'xml',
+        scene: 'DIFF',
+        diffType: exportDiffType.value
+      }
+    })
+    if (!error.value) {
+      exportFile({
+        data: data.value?.data,
+        name: exportDiffType.value,
+        type: 'xml'
+      })
+    } else {
+      console.log(error.value)
+      return {}
+    }
+    
   }
 
   const clearFile = () => {
     fileList.value = []
     dialogVisible.value = false
-  }
-
-  const exportFile = async () => {
-    const data = JSON.parse(diffResult.value)
-    const newData: Record<string, string> = {}
-
-    data[exportDiffType.value].forEach((item:Record<string, string>) => {
-      Object.assign(newData, item)
-    });
-
-    if(Object.keys(newData).length === 0) return 
-
-    var blob = new Blob([JSON.stringify(newData, null, 4)]);
-    // 创建一个URL对象
-    var url = window.URL.createObjectURL(blob);
-    // 创建一个a标签
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = `${exportDiffType.value}-${new Date().getTime()}${exportFileType.value}`;// 这里指定下载文件的文件名
-    a.click();
-    // 释放之前创建的URL对象
-    window.URL.revokeObjectURL(url);
   }
 
   const handleClose = () => {

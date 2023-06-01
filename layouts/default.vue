@@ -8,7 +8,7 @@
           :ellipsis="false"
           @select="handleSelect"
         >
-          <el-menu-item index="0" class="layout-logo">I18n Platform</el-menu-item>
+          <el-menu-item index="0" class="layout-logo">多语言管理平台</el-menu-item>
           <div class="flex-grow" />
           <template v-for="item in menuList">
             <el-menu-item v-if="!item.children" :index="item.index">
@@ -61,6 +61,11 @@
       index: '2',
       label: 'Diff',
       path: '/diff'
+    },
+    {
+      index: '3',
+      label: '格式转换',
+      path: '/convert'
     },
     // {
     //   index: '3',

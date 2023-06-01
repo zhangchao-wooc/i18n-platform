@@ -55,11 +55,14 @@
     }
 
     if(error.value) {
+      const { message, statusCode = 0} = error.value
+      console.log(error)
       ElNotification({
-        title: '错误',
-        message: h('i', { style: 'color: teal' }, error.value.toString()),
+        title: `错误 code: ${statusCode}`,
+        message: h('i', { style: 'color: teal' }, message.toString()),
         type: 'error',
       })
+      loading.close()
     }
   }
 

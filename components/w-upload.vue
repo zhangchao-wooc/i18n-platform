@@ -68,10 +68,10 @@
       const file = event.target.files[0];
     
       // 创建 FileReader 对象
-      const reader = new FileReader();
+      const fileReader = new FileReader();
     
       // 当 FileReader 完成读取文件时，触发该函数
-      reader.addEventListener('load', (event: any) => {
+      fileReader.addEventListener('load', (event: any) => {
         // 读取文件的内容
         const fileContent = event.target.result;
         fileList.value.push({ file, fileContent })
@@ -79,9 +79,18 @@
         // console.log(fileList.value);
         props.fileUpload(fileList.value)
       });
-    
+
+      const suffix = file.name.split('.')[1]
+      
       // 开始读取文件
-      reader.readAsText(file);
+      if (suffix === 'xlsx') {
+        fileReader.readAsArrayBuffer(file)
+      } else {
+        fileReader.readAsText(file);
+      }
+      
+      // fileReader.readAsText(file, 'utf-8');
+      
     });
   })
 
@@ -102,6 +111,8 @@
     }
     &-input {
       opacity: 0;
+      width: 0;
+      height: 0;
     }
     &-list {
       position: absolute;

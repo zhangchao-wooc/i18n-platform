@@ -1,0 +1,97 @@
+// import * as convert from 'xml-js';
+// import type { Options } from 'xml-js'
+
+// // parser xml structure to standard json structure
+// export const parserXml = (xml: string): Record<string, string> | string => {
+//   const xmlJsonString = convert.xml2json(xml, {compact: true, spaces: 4});
+//   const xmlJsonObj = JSON.parse(xmlJsonString);
+//   try {
+//     const result = xmlObjToStandardJson(xmlJsonObj['resources']['string']);
+//     return result
+//   } catch (error: any) {
+//     return error
+//   }
+// }
+
+// // xml json structure to standard json structure
+// const xmlObjToStandardJson = (xmlJsonObj: any[]): Record<string, string> | string => {
+//   const newObj: Record<string, string> = {};
+
+//   if(!Array.isArray(xmlJsonObj)) return 'params is not array'
+
+//   xmlJsonObj.forEach(item => {
+//     newObj[item['_attributes']['name']] = item['_text'];
+//   });
+  
+//   return newObj;
+// };
+
+// /**
+//  * convert to xml
+//  * {
+//  *    data: is standard json structure,
+//  *    options: Options.JS2XML
+//  * }
+//  *
+//  */
+// export const convertToXml = (data: Record<string, string>, options?: Options.JS2XML): string => {
+//   if(!options) {
+//     options = {compact: true, ignoreComment: true, spaces: 4}
+//   }
+//   const xmlStructureObject: any = {
+//     resources: {
+//       _attributes: {
+//         'xmlns:tools': 'http://schemas.android.com/tools',
+//         'tools:ignore': 'MissingTranslation',
+//       },
+//       string: [],
+//     }
+//   }
+
+//   for(const item in data) {
+//     xmlStructureObject['resources']['string'].push({
+//       _attributes: {
+//         name: item,
+//       },
+//       _text: data[item],
+//     });
+//   }
+
+//   const xmlStructure = convert.json2xml(JSON.stringify(xmlStructureObject), options);
+
+//   return xmlStructure
+// }
+
+export const xlsx2Json = (data: any[]) => {
+  const dataMap: any = {};
+  // 取表格第一行作为标准的语言列表, 代表该数据中包含的语言标识组成的数据
+  const languageList = Object.keys(data[0]);
+
+  for (const item of data) {
+    if (Object.prototype.toString.call(item) === '[object Object]') {
+      for (const children in item) {
+        if (children !== 'code') {
+          // 组装 xml 的 json 结构
+          if (!dataMap.hasOwnProperty(children)) {
+            dataMap[children] = {};
+          }
+          dataMap[children][item['code']] = item[children] || '';
+        }
+      }
+
+      // 如果该行数据有语言为空时，填补对应的语言 code 的值为空字符串，补齐 xlsx 解析时部分语言value为空便不解析，导致数据残缺问题。
+      if (Object.keys(item).length < languageList.length) {
+        for (const language of languageList) {
+          if (language !== 'code') {
+            if (!dataMap.hasOwnProperty(language)) {
+              dataMap[language] = {};
+            }
+            dataMap[language][item['code']] = item[language] || undefined;
+          }
+        }
+      }
+    }
+  }
+
+  return dataMap;
+}
