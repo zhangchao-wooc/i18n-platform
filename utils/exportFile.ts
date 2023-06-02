@@ -1,4 +1,5 @@
 // import { convertToXml } from './parser'
+import * as XLSX from 'xlsx';
 
 // interface ExportFileUtilsType {
 //   data: Record<string, any>
@@ -64,4 +65,11 @@ export const exportFile = ({data, name, type = 'json'}: DowmloadUtilsType) => {
   a.click();
   // remove create object before
   window.URL.revokeObjectURL(url);
+}
+
+export const exportXlxsFile = (rows: Record<string, any>[], fileName: string) => {
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'i18n');
+  XLSX.writeFile(workbook, `${fileName}-${new Date().getTime()}.xlsx`, {compression: true});
 }
