@@ -181,3 +181,48 @@ export const table2StanderdJson = (data: any[]): Record<string , any> => {
   }
   return dataMap;
 }
+
+/**
+ * standerd json to table data
+ *
+ */
+
+export const standerdJson2Table = (standerdJson: Record<string , any>): {
+  columns: Record<string, string>[], tableData: Record<string, string>[]
+} => {
+  let dataIndex = 0
+  const columns: Record<string, string>[] = []
+  const tableData: Record<string, string>[] = []
+
+  for(const lang in standerdJson) {
+    const fileNameIndex = columns.findIndex((item: Record<string, string>) => item.prop === lang )
+
+    // 如果该语言不存在，则新增一列
+    if (fileNameIndex === -1) {
+      columns.push({
+        label: lang,
+        prop: lang
+      })
+    }
+
+    // 文件内容转为 table 数据格式
+    for (const children in standerdJson[lang]) {
+      if (isObject(tableData[dataIndex])) {
+        // 根据已有表格数据的项的 code 去取新增语言数据中相同 code 的 value，如无则为空字符串，以第一次添加的语言为准，对齐 code。
+        tableData[dataIndex][lang] = standerdJson[lang][tableData[dataIndex]['code']] || ''
+      } else {
+        // 如果索引下的值为空，则新增 code
+        tableData[dataIndex] = {}
+        tableData[dataIndex]['code'] = children
+        tableData[dataIndex][lang] = standerdJson[lang][children]
+      }
+      dataIndex++
+    }
+    dataIndex = 0
+  }
+
+  return {
+    columns,
+    tableData
+  }
+}

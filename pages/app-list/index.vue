@@ -24,20 +24,21 @@
           <template v-for="item in columns" :key="item.prop" >
             <el-table-column v-bind="item">
               <template #default="scope">
-                <el-input :model-value="scope.row[item.prop]" @change="(e) => changeInput(e, scope.row, item)"></el-input>
+                <el-input :model-value="scope.row[item.prop]" @change="(e) => changeInput(e, scope.row, item)" />
               </template>
             </el-table-column>
           </template>
         </el-table>
       <!-- </el-tab-pane> -->
     <!-- </el-tabs> -->
+    <w-diff v-if="Object.keys(diffArealyExistLangResult).length !== 0" :data="diffArealyExistLangResult" />
   </div>
 </template>
 
 <script lang="ts" setup>
   import { ref } from 'vue'
   import * as XLSX from 'xlsx';
-  import type { TabsPaneContext, Column } from 'element-plus'
+  import type { Action } from 'element-plus'
 
   interface FileListType {
     data: Record<string, string>
@@ -72,6 +73,8 @@
   const columns = ref<Record<string, string>[]>([])
   const accept = ref(initAccept)
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
+  const diffArealyExistLangResult = ref<Record<string, any>>({})
+  const diffDialogVisible = ref(false)
 
   const fileUpload = async (file: any) => {
     const loading = ElLoading.service({
@@ -80,18 +83,16 @@
       background: 'rgba(0, 0, 0, 0.7)',
     })
 
-    let dataIndex = 0
-
     for (const item of file) {
       const fileData = item['fileContent']
       const fileName = item['file']['name'].split('.')[0]
       const fileType: FileListType['type'] = fileTypeMap[item['file']['type']]
       if(!isString(fileType)) {
         return ElNotification({
-        title: `文件类型错误`,
-        message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${item['file']['type']}`),
-        type: 'error',
-      })
+          title: `文件类型错误`,
+          message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${item['file']['type']}`),
+          type: 'error',
+        })
       }
 
       let standerdJson: Record<string, any> = {}
@@ -141,30 +142,7 @@
       }
 
       if(isObject(standerdJson)) {
-        for(const lang in standerdJson) {
-          const fileNameIndex = columns.value.findIndex((item: Record<string, string>) => item.label === lang )
-
-          // 如果该语言不存在，则新增一列
-          if (fileNameIndex === -1) {
-            columns.value.push({
-              label: lang,
-              prop: lang
-            })
-          }
-          // 文件内容转为 table 数据格式
-          for (const children in standerdJson[lang]) {
-            if (isObject(tableData.value[dataIndex])) {
-              tableData.value[dataIndex][lang] = standerdJson[lang][children]
-            } else {
-              tableData.value[dataIndex] = {}
-              tableData.value[dataIndex]['code'] = children
-              tableData.value[dataIndex][lang] = standerdJson[lang][children]
-            }
-            dataIndex++
-          }
-          dataIndex = 0
-        }
-        
+        dealTableData(standerdJson)
         
       } else {
         ElNotification({
@@ -177,6 +155,36 @@
 
     setTimeout(() => { loading.close() }, 1000)
   }
+
+  // merge table data
+  const dealTableData = (standerdJson: Record<string, any>) => {
+
+      for(const lang in standerdJson) {
+        if(columns.value.length !== 0) {
+          const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+          const langExist = columns.value.some(oldData => oldData.prop === lang)
+          // import language file alrealy exist, record
+          if (langExist) {
+            /**
+              * if language is not repeat, merge clumns and table data.
+              *   Otherwise, display data differences.
+              */
+            mergeSameLangCheck(diffJson(currentTable2StanderdJson[lang], standerdJson[lang]), standerdJson, lang )
+          } else {
+            // import language file is not exist, check code
+            // Diff between "table code" and "new File".
+            mergeAddCodeCheck(diffCode(currentTable2StanderdJson[columns.value[0].prop], standerdJson[lang]), standerdJson, lang)
+          }
+        } else {
+          const newTableData: Record<string, any> = {}
+            newTableData[lang] = standerdJson[lang]
+          const {columns: resultClumns, tableData: resultData} = standerdJson2Table(newTableData)
+          columns.value = resultClumns
+          tableData.value = resultData
+        }
+      }
+  }
+
 
   const parserData = async (fileType: 'xml' | 'xlsx', fileData: any) => {
     const { data, pending, error } = await useFetch(`/api/parser/${fileType}`, {
@@ -265,8 +273,92 @@
     }
   }
 
-  
+  const mergeAddCodeCheck = (newDiffCodeResult: Record<string, any>, standerdJson: Record<string, any>, lang: string ) => {
+    
+    let addCodeLength = Object.keys(newDiffCodeResult.add).length
 
+    if (addCodeLength !== 0) {
+      ElMessageBox.alert(
+        `
+          <div>
+            <p>新增 code 总数：${addCodeLength}</p>
+            <pre style="padding: 10px; background: #000; color: #ccc">${JSON.stringify(newDiffCodeResult, null, 4)}</pre>
+          </div>
+        `, 
+        '上传文件新增 Code 如下， 是否合并 ？', 
+        {
+          showClose: false,
+          customStyle: { maxWidth: '80vw' },
+          dangerouslyUseHTMLString: true,
+          closeOnClickModal: false,
+          showCancelButton: true,
+          confirmButtonText: '合并',
+          cancelButtonText: "取消",
+          callback: (action: Action) => {
+            if ( action === 'confirm') {
+              const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+              currentTable2StanderdJson[lang] = standerdJson[lang]
+              const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+              columns.value = resultClumns
+              tableData.value = resultData
+            } else if( action === 'cancel') {
+              // 放弃合并
+            }
+          },
+        }
+      )
+    } else {
+      console.log('所有 code 均相同, 开始合并文件！')
+    }
+  }
+
+  const mergeSameLangCheck = (diffJsonResult: Record<string, any>, standerdJson: Record<string, any>, lang: string) => {
+    let resultLength = 0
+    for(const item in diffJsonResult) {
+      if(diffJsonResult[item].length !== 0) {
+        resultLength += diffJsonResult[item].length
+      }
+    }
+    if(resultLength != 0) {
+      ElMessageBox.alert(
+        `
+          <div>
+            <h4>新文件变更信息</h4>
+            <p>
+              <span>删除数量：${diffJsonResult['remove'].length}</span>
+              <span>新增数量：${diffJsonResult['add'].length}</span>
+              <span>变更数量：${diffJsonResult['change'].length}</span>
+              <span>空值数量：${diffJsonResult['empty'].length}</span>
+            </p>
+            <pre style="padding: 10px; background: #000; color: #ccc">${JSON.stringify(diffJsonResult, null, 4)}</pre>
+          </div>
+        `, 
+        '上传的语言类别已存在，新数据与已有数据区别如下，请选择操作！', 
+        {
+          showClose: false,
+          customStyle: { maxWidth: '80vw' },
+          dangerouslyUseHTMLString: true,
+          closeOnClickModal: false,
+          showCancelButton: true,
+          confirmButtonText: '合并',
+          cancelButtonText: "取消",
+          callback: (action: Action) => {
+            if ( action === 'confirm') {
+              const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+              currentTable2StanderdJson[lang] = standerdJson[lang]
+              const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+              columns.value = resultClumns
+              tableData.value = resultData
+            } else if( action === 'cancel') {
+              // 放弃合并
+            }
+          },
+        }
+      )
+    } else {
+      console.log(`${lang} 语言新文件与改语言已有文件完全相同，无需进行覆盖确认！`)
+    }
+  }
 </script>
 
 <style lang="scss" scoped>

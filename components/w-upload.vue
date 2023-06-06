@@ -77,7 +77,7 @@
         fileList.value.push({ file, fileContent })
         // 在控制台输出文件内容
         // console.log(fileList.value);
-        props.fileUpload(fileList.value)
+        props.fileUpload([{ file, fileContent }])
       });
 
       const suffix = file.name.split('.')[1]

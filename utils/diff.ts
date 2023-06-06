@@ -70,3 +70,35 @@ export function diffJson(oldData: Record<string, string>, newData: Record<string
 
   return diffResult;
 }
+
+// check add code
+export const diffCode = (oldData: Record<string, string>, newData: Record<string, string>) => {
+  if (Object.prototype.toString.call(oldData) !== '[object Object]') throw 'diffCode: oldData is not Object';
+  if (Object.prototype.toString.call(newData) !== '[object Object]') throw 'diffCode: newData is not Object';
+
+  const result: Record<string, any> = {
+    add: {}
+  };
+
+  // add code
+  for (const item in newData) {
+    if (!oldData.hasOwnProperty(item)) {
+      result['add'][item] = newData[item]
+    }
+  }
+
+  return result;
+}
+
+export const diffStanderdJsonCode = (oldData: Record<string, any>, newData: Record<string, any>) => {
+  const result: Record<string, any> = {};
+
+  const list = Object.keys(oldData)
+
+  for (const lang in newData) {
+    for (const item in newData[lang])
+    if (!oldData[list[0]].hasOwnProperty(item)) {
+      result[lang][item] = newData[lang][item]
+    }
+  }
+}
