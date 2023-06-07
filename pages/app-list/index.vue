@@ -3,6 +3,12 @@
     <!-- <el-tabs v-model="activeTab" class="index-tabs" @tab-click="tabClick"> -->
       <!-- <el-tab-pane class="index-tabs-pane" v-for="item in languageList" :key="item.label" :label="item.label" :name="item.value"> -->
         <div class="index-control">
+          <div class="index-control-info">
+            <span>词条总数：{{ tableData.length }}</span>
+            <!-- <template v-for="item in columns" :key="item.label">
+              <span>{{ item.label }} 空值数量： {{  }}</span>
+            </template> -->
+          </div>
           <w-upload class="index-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
           <el-dropdown class="index-control-export" :disabled="tableData.length === 0" split-button type="primary">
             导出文件
@@ -11,15 +17,15 @@
                 <template v-for="item in exportFileTypeList" :key="item.value" >
                   <el-dropdown-item @click="classificationExport(item.value)">
                     <div >{{ item.label }}</div>
-
                   </el-dropdown-item>
                 </template>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+          <el-button v-if=" tableData.length > 0" @click="batchTranslate">批量翻译</el-button>
         </div>
         <!-- code list -->
-        <el-table :data="tableData" stripe style="width: 100%" :row-class-name="tableRowClassName">
+        <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName">
           <el-table-column label="Code" prop="code" fixed='left' />
           <template v-for="item in columns" :key="item.prop" >
             <el-table-column v-bind="item">
@@ -32,6 +38,7 @@
       <!-- </el-tab-pane> -->
     <!-- </el-tabs> -->
     <w-diff v-if="Object.keys(diffArealyExistLangResult).length !== 0" :data="diffArealyExistLangResult" />
+    <w-translate v-if="batchTranslateDialogVisible" :cb="batchTranslateCb" :data="tableData" />
   </div>
 </template>
 
@@ -74,7 +81,7 @@
   const accept = ref(initAccept)
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
   const diffArealyExistLangResult = ref<Record<string, any>>({})
-  const diffDialogVisible = ref(false)
+  const batchTranslateDialogVisible = ref(false)
 
   const fileUpload = async (file: any) => {
     const loading = ElLoading.service({
@@ -120,6 +127,7 @@
               type: 'error',
             })
           } else {
+            console.log(resultXml)
             //@ts-ignore
             standerdJson = resultXml
           }
@@ -158,31 +166,30 @@
 
   // merge table data
   const dealTableData = (standerdJson: Record<string, any>) => {
-
-      for(const lang in standerdJson) {
-        if(columns.value.length !== 0) {
-          const currentTable2StanderdJson = table2StanderdJson(tableData.value)
-          const langExist = columns.value.some(oldData => oldData.prop === lang)
-          // import language file alrealy exist, record
-          if (langExist) {
-            /**
-              * if language is not repeat, merge clumns and table data.
-              *   Otherwise, display data differences.
-              */
-            mergeSameLangCheck(diffJson(currentTable2StanderdJson[lang], standerdJson[lang]), standerdJson, lang )
-          } else {
-            // import language file is not exist, check code
-            // Diff between "table code" and "new File".
-            mergeAddCodeCheck(diffCode(currentTable2StanderdJson[columns.value[0].prop], standerdJson[lang]), standerdJson, lang)
-          }
+    for(const lang in standerdJson) {
+      if(columns.value.length !== 0) {
+        const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+        const langExist = columns.value.some(oldData => oldData.prop === lang)
+        // import language file alrealy exist, record
+        if (langExist) {
+          /**
+            * if language is not repeat, merge clumns and table data.
+            *   Otherwise, display data differences.
+            */
+          mergeSameLangCheck(diffJson(currentTable2StanderdJson[lang], standerdJson[lang]), standerdJson, lang )
         } else {
-          const newTableData: Record<string, any> = {}
-            newTableData[lang] = standerdJson[lang]
-          const {columns: resultClumns, tableData: resultData} = standerdJson2Table(newTableData)
-          columns.value = resultClumns
-          tableData.value = resultData
+          // import language file is not exist, check code
+          // Diff between "table code" and "new File".
+          mergeAddCodeCheck(diffCode(currentTable2StanderdJson[columns.value[0].prop], standerdJson[lang]), standerdJson, lang)
         }
+      } else {
+        const newTableData: Record<string, any> = {}
+          newTableData[lang] = standerdJson[lang]
+        const {columns: resultClumns, tableData: resultData} = standerdJson2Table(newTableData)
+        columns.value = resultClumns
+        tableData.value = resultData
       }
+    }
   }
 
 
@@ -203,18 +210,17 @@
     }
   }
 
-  const tableRowClassName = ({
-    row,
-    rowIndex,
+  const tableCellClassName = ({
+    row, column, rowIndex, columnIndex
   }: {
+    column: Record<string, string>
     row: Record<string, string>
     rowIndex: number
+    columnIndex: number
   }) => {
-    // 翻译内容为空时, 表格置为警告颜色
-    for (const item in row) {
-      if(!row[item] || row[item].length === 0) {
-        return 'warning-row'
-      }
+    // when content is empty, current cell background color set warning color.
+    if(!row[column.label] && column.label !== 'Code') {
+      return 'warning-row'
     }
     return ''
   }
@@ -273,8 +279,8 @@
     }
   }
 
+  // check and merge "code" for language data
   const mergeAddCodeCheck = (newDiffCodeResult: Record<string, any>, standerdJson: Record<string, any>, lang: string ) => {
-    
     let addCodeLength = Object.keys(newDiffCodeResult.add).length
 
     if (addCodeLength !== 0) {
@@ -297,10 +303,17 @@
           callback: (action: Action) => {
             if ( action === 'confirm') {
               const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+              // exist languag data add empty for add 'code'
+              for(const language in currentTable2StanderdJson) {
+                for(const newCode in newDiffCodeResult.add) {
+                  currentTable2StanderdJson[language][newCode] = ''
+                }
+              }
               currentTable2StanderdJson[lang] = standerdJson[lang]
               const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
               columns.value = resultClumns
               tableData.value = resultData
+              console.log(resultData)
             } else if( action === 'cancel') {
               // 放弃合并
             }
@@ -308,10 +321,16 @@
         }
       )
     } else {
-      console.log('所有 code 均相同, 开始合并文件！')
+      console.log(`${lang} 文件 code 与已有 code 相同, 开始合并文件！`)
+      const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+      currentTable2StanderdJson[lang] = standerdJson[lang]
+      const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+      columns.value = resultClumns
+      tableData.value = resultData
     }
   }
 
+  // check and merge for same language file 
   const mergeSameLangCheck = (diffJsonResult: Record<string, any>, standerdJson: Record<string, any>, lang: string) => {
     let resultLength = 0
     for(const item in diffJsonResult) {
@@ -356,8 +375,28 @@
         }
       )
     } else {
-      console.log(`${lang} 语言新文件与改语言已有文件完全相同，无需进行覆盖确认！`)
+      console.log(`${lang} 语言新文件与该语言已有文件完全相同，无需进行覆盖确认！`)
     }
+  }
+
+  const batchTranslate = () => {
+    batchTranslateDialogVisible.value = true
+  }
+
+  const batchTranslateCb = (translateResult?: Record<string, any>) => {
+    if (translateResult) {
+      console.log('merge', translateResult)
+      // if translate result is exist, merge to table data.
+      for(const lang in translateResult) {
+        const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+        currentTable2StanderdJson[lang] = translateResult[lang]
+        const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+        columns.value = resultClumns
+        tableData.value = resultData
+      }
+      
+    }
+    batchTranslateDialogVisible.value = false
   }
 </script>
 
@@ -366,6 +405,13 @@
     &-control {
       display: flex;
       justify-content: flex-end;
+
+      &-info {
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+      }
+
       &-upload,&-export {
         margin: 0 5px;
       }
@@ -375,14 +421,10 @@
         &-upload {
           float: right;
         }
-        ::v-deep(.el-table .warning-row) {
-          --el-table-tr-bg-color: var(--el-color-warning-light-9);
-        }
-        
       }
     }
-    
+    ::v-deep(.el-table .el-table__row .warning-row) {
+      background-color: var(--el-color-warning-light-5)!important;
+    }
   }
-
-  
 </style>

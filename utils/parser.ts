@@ -150,6 +150,7 @@ export const parserJson2FirstLevel = (data: any, parentKey?: string): Record<str
 
 
 export const table2StanderdJson = (data: any[]): Record<string , any> => {
+  if (data.length === 0) return {}
   const dataMap: any = {};
   // 取表格第一行作为标准的语言列表, 代表该数据中包含的语言标识组成的数据
   const languageList = Object.keys(data[0]);

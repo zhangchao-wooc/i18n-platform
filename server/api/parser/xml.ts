@@ -32,7 +32,7 @@ const xmlObjToStandardJson = (xmlJsonObj: any[]): Record<string, string> | strin
   if(!Array.isArray(xmlJsonObj)) return 'params is not array'
 
   xmlJsonObj.forEach(item => {
-    newObj[item['_attributes']['name']] = item['_text'];
+    newObj[item['_attributes']['name']] = item['_text'] || '';
   });
   
   return newObj;
