@@ -30,10 +30,20 @@
           <template v-for="item in columns" :key="item.prop" >
             <el-table-column v-bind="item">
               <template #default="scope">
-                <el-input :model-value="scope.row[item.prop]" @change="(e) => changeInput(e, scope.row, item)" />
+                <el-input :model-value="scope.row[item.prop]" @input="(e) => changeInput(e, scope.row, item)" />
               </template>
             </el-table-column>
           </template>
+          <el-table-column label="操作" prop="handle" width="85px" fixed='right'>
+            <template #default="scope">
+              <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', scope)">
+                <template #reference>
+                  <el-button type="danger">删除</el-button>
+                </template>
+              </el-popconfirm>
+              
+            </template>
+          </el-table-column>
         </el-table>
       <!-- </el-tab-pane> -->
     <!-- </el-tabs> -->
@@ -219,14 +229,19 @@
     columnIndex: number
   }) => {
     // when content is empty, current cell background color set warning color.
-    if(!row[column.label] && column.label !== 'Code') {
-      return 'warning-row'
+    if(column.property !== 'code' && column.property !== 'handle') {
+      console.log(column)
+      if (!row[column.property]) {
+        return 'warning-row'
+      }
     }
+    
     return ''
   }
 
   const changeInput = (text: string, row: Record<string, string>, item: Record<string, string>) => {
     console.log(text, row, item)
+    row[item.prop] = text
   }
 
   const classificationExport = async (fileType: FileListType['type']) => {
@@ -377,6 +392,16 @@
     } else {
       console.log(`${lang} 语言新文件与该语言已有文件完全相同，无需进行覆盖确认！`)
     }
+  }
+
+  const handleTable = (handle: string, data: any, ) => {
+    console.log('handleTable', data, handle)
+    if (handle === 'DELETE') {
+      tableData.value.splice(data.$index, 1)
+    } else if (handle === 'ADD') {
+      tableData.value.push(data)
+    }
+    
   }
 
   const batchTranslate = () => {

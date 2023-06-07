@@ -14,17 +14,17 @@
       class="w-translate-form"
       status-icon
     >
-      <el-form-item label="已上传语言" prop="selectedLang">
+      <el-form-item label="已上传语言" prop="selectedLang" required>
         <el-select v-model="translateForm.selectedLang" placeholder="已上传语言">
           <el-option v-for="item in Object.keys(standerdJson)" :label="item" :value="item" />
         </el-select>
       </el-form-item>
-      <el-form-item label="原语言" prop="sourceLang">
-        <el-select v-model="translateForm.sourceLang" placeholder="原语言">
+      <el-form-item label="源语言" prop="sourceLang" required>
+        <el-select v-model="translateForm.sourceLang" placeholder="源语言">
           <el-option v-for="item in languageList" :label="item.label" :value="item.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="目标语言" prop="targetLang">
+      <el-form-item label="目标语言" prop="targetLang" required>
         <el-select v-model="translateForm.targetLang" placeholder="目标语言">
           <el-option v-for="item in languageList" :label="item.label" :value="item.value" />
         </el-select>
@@ -102,10 +102,23 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid, fields) => {
     if (valid) {
+      if(translateForm.targetLang === translateForm.sourceLang) {
+        ElMessageBox.confirm(
+          '原语言与目标语言相同，请重新选择！',
+          'Warning',
+          {
+            showCancelButton: false,
+            confirmButtonText: '好的',
+            type: 'warning',
+            draggable: true,
+          }
+        )
+        return 
+      }
       console.log('submit!', translateForm)
       const loading = ElLoading.service({
         lock: true,
-        text: '文件翻译中...',
+        text: '翻译中...',
         background: 'rgba(0, 0, 0, 0.7)',
       })
       for(const code in standerdJson.value[translateForm.selectedLang]) {
