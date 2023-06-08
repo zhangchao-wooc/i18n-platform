@@ -22,11 +22,13 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button v-if=" tableData.length > 0" @click="batchTranslate">批量翻译</el-button>
+          <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
         </div>
         <!-- code list -->
         <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName">
-          <el-table-column label="Code" prop="code" fixed='left' />
+          <el-table-column  type="index" width="50" />
+          <el-table-column type="selection" width="55" />
+          <el-table-column label="Code" prop="code"  />
           <template v-for="item in columns" :key="item.prop" >
             <el-table-column v-bind="item">
               <template #default="scope">
@@ -41,7 +43,6 @@
                   <el-button type="danger">删除</el-button>
                 </template>
               </el-popconfirm>
-              
             </template>
           </el-table-column>
         </el-table>
@@ -161,7 +162,6 @@
 
       if(isObject(standerdJson)) {
         dealTableData(standerdJson)
-        
       } else {
         ElNotification({
           title: `文件类型错误`,
@@ -202,7 +202,6 @@
     }
   }
 
-
   const parserData = async (fileType: 'xml' | 'xlsx', fileData: any) => {
     const { data, pending, error } = await useFetch(`/api/parser/${fileType}`, {
       method: "post",
@@ -228,14 +227,13 @@
     rowIndex: number
     columnIndex: number
   }) => {
+    console.log(column)
     // when content is empty, current cell background color set warning color.
-    if(column.property !== 'code' && column.property !== 'handle') {
-      console.log(column)
+    if(column.property !== 'code' && column.property !== 'handle' && column.type !== "selection" && column.type !== "index") {
       if (!row[column.property]) {
         return 'warning-row'
       }
     }
-    
     return ''
   }
 
@@ -419,7 +417,6 @@
         columns.value = resultClumns
         tableData.value = resultData
       }
-      
     }
     batchTranslateDialogVisible.value = false
   }
@@ -428,8 +425,15 @@
 <style lang="scss" scoped>
   .index {
     &-control {
+      position: sticky;
+      top: -20px;
+      padding: 20px 5px ;
+      width: 100%;
       display: flex;
       justify-content: flex-end;
+      background-color: #fff;
+      border-bottom: solid 1px var(--el-menu-border-color);
+      z-index: 10;
 
       &-info {
         display: flex;

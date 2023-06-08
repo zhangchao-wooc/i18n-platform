@@ -3,14 +3,14 @@
     class="w-translate"
     v-model="dialogVisible"
     title="批量翻译"
-    width="80%"
+    :fullscreen="true"
     :before-close="close"
   >
     <el-form
       ref="translateFormRef"
       :model="translateForm"
       :inline="true"
-      label-width="120px"
+      label-width="100px"
       class="w-translate-form"
       status-icon
     >
@@ -129,8 +129,19 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           } else {
             translateResult.value[translateForm.targetLang] = {}
             translateResult.value[translateForm.targetLang][code] = result
+            setTimeout(() => {
+              var element = document.querySelector('.json-show'); // 获取需要滚动的元素
+              // 在内容变化时自动滚动到底部
+              console.log(element)
+              //@ts-ignore addEventListener
+              element.addEventListener("DOMSubtreeModified", function () {
+                //@ts-ignore
+                element.scrollTop = element.scrollHeight;
+              });
+            })
           }
         } else {
+          loading.close()
           return
         }
       }
@@ -205,6 +216,8 @@ const close = () => {
       background-color: #000;
       color: #fff;
       padding: 10px;
+      height: 60vh;
+      overflow: auto;
     }
   }
   
