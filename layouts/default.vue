@@ -2,14 +2,13 @@
   <div class="layout">
     <el-container>
       <el-header>
+        <h1 class="layout-logo"><a href="/">多语言管理平台</a></h1>
         <el-menu
           :default-active="activeIndex"
           mode="horizontal"
           :ellipsis="false"
           @select="handleSelect"
         >
-          <el-menu-item index="0" class="layout-logo">多语言管理平台</el-menu-item>
-          <div class="flex-grow" />
           <template v-for="item in menuList">
             <el-menu-item v-if="!item.children" :index="item.index">
               <NuxtLink :to="item.path">{{ item.label }}</NuxtLink>
@@ -111,8 +110,20 @@
 
 <style scoped lang="scss">
   .layout {
+    .el-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      .el-menu {
+        border: none;
+      }
+    }
     &-logo {
       font-size: 25px;
+      cursor: pointer;
+      a {
+        color: #000;
+      }
     }
     .flex-grow {
       flex-grow: 1;

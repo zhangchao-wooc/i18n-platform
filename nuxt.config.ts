@@ -3,6 +3,7 @@
 export default defineNuxtConfig({
   modules: ['@element-plus/nuxt'],
   elementPlus: {
+    importStyle: "scss",
     icon: 'ElIcon'
   },
   // components: false,
@@ -11,10 +12,24 @@ export default defineNuxtConfig({
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: '@use "@/assets/animation.scss" as *;'
+          additionalData: '@use "@/assets/theme.scss" as *;'
         }
       }
     }
   },
+  nitro: {
+    storage: {
+      'redis': {
+        driver: 'redis',
+        /* redis connector options */
+        port: 6379, // Redis port
+        host: "127.0.0.1", // Redis host
+        username: "", // needs Redis >= 6
+        password: "",
+        db: 0, // Defaults to 0
+        // tls: {} // tls/ssl
+      }
+    }
+  }
   
 })

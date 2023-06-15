@@ -5,7 +5,7 @@
       <el-icon  class="w-upload-button-icon"><UploadFilled /></el-icon>
     </el-button>
     
-    <ul class="w-upload-list">
+    <ul v-if="props.uploadList" class="w-upload-list">
       <el-tag
         class="w-upload-list-item"
         v-for="item in fileList"
@@ -45,6 +45,10 @@
     fileUpload: {
       type: Function,
       required: true
+    },
+    uploadList: {
+      type: Boolean,
+      default: false
     }
   })
 

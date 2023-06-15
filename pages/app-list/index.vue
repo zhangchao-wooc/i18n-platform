@@ -40,7 +40,7 @@
             <template #default="scope">
               <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', scope)">
                 <template #reference>
-                  <el-button type="danger">删除</el-button>
+                  <el-button type="danger" size="small">删除</el-button>
                 </template>
               </el-popconfirm>
             </template>
