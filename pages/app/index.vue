@@ -2,15 +2,28 @@
   <div class="index">
     <!-- <el-tabs v-model="activeTab" class="index-tabs" @tab-click="tabClick"> -->
       <!-- <el-tab-pane class="index-tabs-pane" v-for="item in languageList" :key="item.label" :label="item.label" :name="item.value"> -->
-        <div class="index-control">
-          <div class="index-control-info">
+      <header class="index-header">
+        <div class="index-header-left">
+          <el-button type="primary"  class="index-header-left-item" @click="navigateTo({ path: '/'})">返回</el-button>
+          <div class="index-header-left-item">
+            <b>应用名称：</b>
+            <span>{{ appInfo?.name || '-'}}</span>
+          </div>
+          <div  class="index-header-left-item">
+            <b>多语言版本：</b>
+            <span>{{ appInfo?.version || '-'}}</span>
+          </div>
+        </div>
+      
+        <div class="index-header-control">
+          <div class="index-header-control-info">
             <span>词条总数：{{ tableData.length }}</span>
             <!-- <template v-for="item in columns" :key="item.label">
               <span>{{ item.label }} 空值数量： {{  }}</span>
             </template> -->
           </div>
-          <w-upload class="index-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
-          <el-dropdown class="index-control-export" :disabled="tableData.length === 0" split-button type="primary">
+          <w-upload class="index-header-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
+          <el-dropdown class="index-header-control-export" :disabled="tableData.length === 0" split-button type="primary">
             导出文件
             <template #dropdown>
               <el-dropdown-menu>
@@ -23,7 +36,11 @@
             </template>
           </el-dropdown>
           <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
+          <el-button type="primary" @click="save">保存</el-button>
+          <el-button type="primary" @click="publish">发布</el-button>
+
         </div>
+      </header>
         <!-- code list -->
         <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName">
           <el-table-column  type="index" width="50" />
@@ -84,15 +101,58 @@
     },
   ]
 
-  // const loading = ref(false)
-  const languageList = ref<Record<string, string>[]>([])
-  const activeTab = ref()
+  const appInfo = ref<Record<string, any>>({})
   const tableData = ref<Record<string, string>[]>([])
   const columns = ref<Record<string, string>[]>([])
   const accept = ref(initAccept)
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
   const diffArealyExistLangResult = ref<Record<string, any>>({})
   const batchTranslateDialogVisible = ref(false)
+
+  const route = useRoute()
+
+  onBeforeMount(() => {
+    queryAppInfo(true)
+  })
+
+  const queryAppInfo = async (isQueryCurrentVersionData?: boolean) => {
+    const {code, data, message} = await $fetch(`/api/app/info`, {
+      method: 'get',
+      query: { uuid: route.query.uuid }
+    })
+    
+    if(code === 200) {
+      appInfo.value = data
+      isQueryCurrentVersionData && queryCurrentVersionData()
+    } else {
+      ElMessage({ message, type: 'error' })
+    }
+  }
+
+  const queryCurrentVersionData = async () => {
+    const loading = ElLoading.service({
+      lock: true,
+      text: '获取数据中...',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    const {code, data, message} = await $fetch(`/api/app/current`, {
+      method: 'get',
+      query: { uuid: appInfo.value.uuid }
+    })
+    
+    loading.close()
+
+    if(code === 200) {
+      const { columns: resultClumns, tableData: resultTableData } = standerdJson2Table(data)
+      columns.value = resultClumns
+      tableData.value = resultTableData
+    } else {
+      ElMessage({
+        message,
+        type: 'error',
+      })
+    }
+  }
 
   const fileUpload = async (file: any) => {
     const loading = ElLoading.service({
@@ -420,31 +480,103 @@
     }
     batchTranslateDialogVisible.value = false
   }
+
+  const save = async () => {
+    const loading = ElLoading.service({
+      lock: true,
+      text: '保存中...',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    const {code, data, message} = await $fetch(`/api/app/save`, {
+      method: 'POST',
+      body: {
+        uuid: route.query.uuid,
+        data: JSON.stringify(table2StanderdJson(tableData.value))
+      }
+    })
+    
+    loading.close()
+
+    if(code === 200) {
+      ElMessage({
+        message: '保存成功',
+        type: 'success',
+      })
+    } else {
+      ElMessage({
+        message,
+        type: 'error',
+      })
+    }
+  }
+
+  const publish = async () => {
+    const loading = ElLoading.service({
+      lock: true,
+      text: '发布中...',
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+    const {code, data, message} = await $fetch(`/api/app/publish`, {
+      method: 'POST',
+      body: {
+        uuid: route.query.uuid,
+        data: JSON.stringify(table2StanderdJson(tableData.value))
+      }
+    })
+    
+    loading.close()
+
+    if(code === 200) {
+      queryAppInfo(false)
+      ElMessage({
+        message: '发布成功',
+        type: 'success',
+      })
+    } else {
+      ElMessage({
+        message,
+        type: 'error',
+      })
+    }
+  }
+
 </script>
 
 <style lang="scss" scoped>
   .index {
-    &-control {
+    &-header {
       position: sticky;
       top: -20px;
       padding: 20px 5px ;
       width: 100%;
       display: flex;
-      justify-content: flex-end;
-      background-color: #fff;
+      justify-content: space-between;
       border-bottom: solid 1px var(--el-menu-border-color);
+      background-color: #fff;
       z-index: 10;
-
-      &-info {
+      &-left {
         display: flex;
         align-items: center;
-        padding: 0 10px;
+        &-item {
+          margin: 0 5px;
+        }
       }
+      &-control {
+        display: flex;
+        justify-content: flex-end;
 
-      &-upload,&-export {
-        margin: 0 5px;
+        &-info {
+          display: flex;
+          align-items: center;
+          padding: 0 10px;
+        }
+
+        &-upload,&-export {
+          margin: 0 5px;
+        }
       }
     }
+   
     &-tabs {
       &-pane {
         &-upload {

@@ -53,8 +53,8 @@
   const menuList = ref<MenuListType[]>([
     {
       index: '1',
-      label: '应用列表',
-      path: '/app-list'
+      label: '首页',
+      path: '/'
     },
     {
       index: '2',

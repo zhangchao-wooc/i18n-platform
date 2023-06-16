@@ -1,35 +1,57 @@
 <template>
   <div class="home">
     <header class="home-header">
-      <el-button type="primary" @click="dialogFormVisible = true">创建应用</el-button>
+      <el-button type="primary" @click="() => {
+        
+        if(dialogFormVisible) {
+          dialogFormVisible = false
+        }
+        console.log(dialogFormVisible)
+        dialogFormVisible = true
+      }">创建应用</el-button>
     </header>
   
     <div class="home-list">
       <el-card class="home-list-card" shadow="hover" v-for="item in appList" :key="item.name">
         <template #header>
           <div class="home-list-card-header">
-            <span class="home-list-card-header-name">{{ item.name || '-' }}</span>
-            <el-button type="primary" size="small" :icon="Edit" circle />
+            <span class="home-list-card-header-name"></span>
+            <el-dropdown @command="(command) => clickAppDropdown(command, item)">
+              <span class="el-dropdown-link">
+                <el-icon><More /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                  <el-dropdown-item command="delete">删除</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </template>
-        <div class="home-list-card-body">
+
+        <div class="home-list-card-body" @click="navigateTo({ path: '/app', query: { name: item.name, uuid: item.uuid }})">
           <div class="home-list-card-body-row">
-            <span>描述: </span>
-            <span></span>
+            <p>应用名称</p>
+            <div>{{ item.name || '-' }}</div>
           </div>
           <div class="home-list-card-body-row">
-            <span>创建人: </span>
-            <span></span>
+            <p>创建人</p>
+            <div>{{ item.creator || '-' }}</div>
           </div>
           <div class="home-list-card-body-row">
-            <span>创建时间: </span>
-            <span></span>
+            <p>创建时间</p>
+            <div>{{ dayjs(item.createTime).format('YYYY年MM月DD HH:mm:ss') || '-' }}</div>
+          </div>
+          <div class="home-list-card-body-row">
+            <p>描述</p>
+            <div>{{ item.desc || '-' }}</div>
           </div>
         </div>
       </el-card>
     </div>
     <!-- create app -->
-    <el-dialog v-model="dialogFormVisible" title="新建应用" width="400">
+    <el-dialog :model-value="dialogFormVisible" title="新建应用" width="400">
       <el-form :model="form" :rules="rules" ref="ruleFormRef">
         <el-form-item label="应用名称" :label-width="formLabelWidth" prop="name">
           <el-input v-model="form.name" autocomplete="off" />
@@ -42,7 +64,7 @@
             <el-button type="primary" @click="create(ruleFormRef)">
               创建
             </el-button>
-            <el-button @click="createDialogClose(ruleFormRef)">取消</el-button>
+            <el-button @click="createDialogClose()">取消</el-button>
           </template>
         </el-form-item>
       </el-form>
@@ -61,6 +83,7 @@
   Star,
 } from '@element-plus/icons-vue'
   import type { FormInstance, FormRules } from 'element-plus' 
+  import * as dayjs from 'dayjs'
 
   // const loading = ref<boolean>(false)
   const appList = ref<any>({})
@@ -109,7 +132,7 @@
       if (valid) {
         const {code, message} = await $fetch(`/api/app/create`, {
           method: "POST",
-          body: form
+          body: { ...form, creator: 'wooc' }
         })
       
         if(code === 200) {
@@ -117,7 +140,7 @@
             message: '创建成功',
             type: 'success',
           })
-          createDialogClose(ruleFormRef.value)
+          createDialogClose()
           getAppList()
         } else {
           ElMessage({
@@ -131,9 +154,36 @@
     })
   }
 
-  const createDialogClose = (formEl: FormInstance | undefined) => {
-    if (!formEl) return
-      formEl.resetFields()
+  const deleteApp = async (name: string | number) => {
+    const { code, message } = await $fetch(`/api/app`, {
+      method: "DELETE",
+      query: { name }
+    })
+
+    if(code === 200) {
+      getAppList()
+      ElMessage({
+        message: '删除成功',
+        type: 'success',
+      })
+    } else {
+      ElMessage({
+        message,
+        type: 'error',
+      })
+    }
+  }
+
+  const clickAppDropdown = (command: string | number | object, item: any) => {
+    if(command === 'edit') {
+
+    } else if(command === 'delete') {
+      deleteApp(item.name)
+    }
+  }
+
+  const createDialogClose = () => {
+      ruleFormRef.value?.resetFields()
       dialogFormVisible.value = false
   }
 </script>
@@ -148,7 +198,7 @@
     }
     &-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, 200px);
+      grid-template-columns: repeat(auto-fill, 220px);
       grid-template-rows: 250px;
       gap: 20px;
       &-card {
@@ -161,6 +211,9 @@
         ::v-deep(.el-card__header) {
           padding: 10px 10px;
         }
+        ::v-deep(.el-card__body) {
+          padding: 0;
+        }
         &-header {
           display: flex;
           justify-content: space-between;
@@ -170,16 +223,18 @@
           }
         }
         &-body {
-          display: grid;
-          flex-direction: column;
-          gap: 10px;
+          padding: 10px 15px;
+          height: 213px;
           font-size: 12px;
-          height: 100%;
+          box-sizing: border-box;
+          cursor: pointer;
           &-row {
-            span {
-              &:nth-child(1) {
-                font-weight: 600;
-              }
+            p {
+              margin: 8px 0 5px;
+              font-weight: 600;
+            }
+            div {
+              word-break:break-all; 
             }
           }
         }
