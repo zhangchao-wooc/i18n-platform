@@ -1,15 +1,24 @@
 export default defineEventHandler(async (event) => {
   const method = getMethod(event)
   const query = getQuery(event)
-  console.log(JSON.stringify(query))
+  const { name } = query
 
-  const result = await useStorage().getItem('redis:appList') || {}
+  let appList: any = await useStorage().getItem('redis:appList')
+  let appMap = appList ? new Map(appList) : new Map()
+  let deletedApp: any = await useStorage().getItem('redis:deletedApp') || {}
+
 
   if(method === 'DELETE') {
-    if(result[query.name] !== undefined) {
-      delete result[query.name]
-      console.log(JSON.stringify(result))
-      await useStorage().setItem('redis:appList', result)
+    if(appMap.has(name)) {
+      const deleteAppInfo = appMap.get(name)
+      // Current app status change to deleted.
+      const newAppInfo = {...deleteAppInfo, isDelete: true}
+      deletedApp[`name-${new Date().getTime}`] = newAppInfo
+      appMap.delete(name)
+      await useStorage().setItem(`redis:${deleteAppInfo.uuid}-appInfo`, {...newAppInfo, isDelete: true})
+      await useStorage().setItem('redis:appList', Array.from(appMap))
+      await useStorage().setItem('redis:deletedApp', deletedApp)
+
       return {
         code: 200,
         data: null,
@@ -25,7 +34,7 @@ export default defineEventHandler(async (event) => {
   } else if(method === 'GET') {
     return {
       code: 200,
-      data: result,
+      data: Array.from(appMap.values()),
       message: ''
     }
   }

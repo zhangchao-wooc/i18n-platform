@@ -30,7 +30,7 @@
           </div>
         </template>
 
-        <div class="home-list-card-body" @click="navigateTo({ path: '/app', query: { name: item.name, uuid: item.uuid }})">
+        <div class="home-list-card-body" @click="navigateTo({ path: '/app', query: {uuid: item.uuid }})">
           <div class="home-list-card-body-row">
             <p>应用名称</p>
             <div>{{ item.name || '-' }}</div>
@@ -51,7 +51,7 @@
       </el-card>
     </div>
     <!-- create app -->
-    <el-dialog :model-value="dialogFormVisible" title="新建应用" width="400">
+    <el-dialog :model-value="dialogFormVisible" :title="isEditApp ? '编辑应用' : '新建应用'" width="400">
       <el-form :model="form" :rules="rules" ref="ruleFormRef">
         <el-form-item label="应用名称" :label-width="formLabelWidth" prop="name">
           <el-input v-model="form.name" autocomplete="off" />
@@ -61,8 +61,8 @@
         </el-form-item>
         <el-form-item>
           <template style="display: flex; justify-content: center;">
-            <el-button type="primary" @click="create(ruleFormRef)">
-              创建
+            <el-button type="primary" @click="isEditApp ? editApp() : create()">
+              提交
             </el-button>
             <el-button @click="createDialogClose()">取消</el-button>
           </template>
@@ -87,7 +87,9 @@
 
   // const loading = ref<boolean>(false)
   const appList = ref<any>({})
-  const dialogFormVisible = ref(false)
+  const dialogFormVisible = ref<boolean>(false)
+  const isEditApp = ref<boolean>(false)
+  const currentActiveAppInfo = ref({ uuid: null })
   const formLabelWidth = '80px'
   const form = reactive({
     name: '',
@@ -126,9 +128,9 @@
     }
   }
 
-  const create = async (formEl: FormInstance | undefined) => {
-    if (!formEl) return
-    await formEl.validate(async (valid, fields) => {
+  const create = async () => {
+    if (!ruleFormRef.value) return
+    await ruleFormRef.value.validate(async (valid, fields) => {
       if (valid) {
         const {code, message} = await $fetch(`/api/app/create`, {
           method: "POST",
@@ -138,6 +140,34 @@
         if(code === 200) {
           ElMessage({
             message: '创建成功',
+            type: 'success',
+          })
+          createDialogClose()
+          getAppList()
+        } else {
+          ElMessage({
+            message,
+            type: 'error',
+          })
+        }
+      } else {
+        console.log('error submit!', fields)
+      }
+    })
+  }
+
+  const editApp = async () => {
+    if (!ruleFormRef.value) return
+    await ruleFormRef.value.validate(async (valid, fields) => {
+      if (valid) {
+        const {code, message} = await $fetch(`/api/app/edit`, {
+          method: "POST",
+          body: { data: {...form, editor: 'wooc'}, uuid: currentActiveAppInfo.value.uuid }
+        })
+      
+        if(code === 200) {
+          ElMessage({
+            message: '编辑成功',
             type: 'success',
           })
           createDialogClose()
@@ -176,15 +206,21 @@
 
   const clickAppDropdown = (command: string | number | object, item: any) => {
     if(command === 'edit') {
-
+      currentActiveAppInfo.value = item
+      form.name = item.name
+      form.desc = item.desc
+      isEditApp.value = true
+      dialogFormVisible.value = true
     } else if(command === 'delete') {
       deleteApp(item.name)
     }
   }
 
   const createDialogClose = () => {
-      ruleFormRef.value?.resetFields()
-      dialogFormVisible.value = false
+    ruleFormRef.value?.resetFields()
+    dialogFormVisible.value = false
+    currentActiveAppInfo.value = { uuid: null}
+    isEditApp.value = false
   }
 </script>
 

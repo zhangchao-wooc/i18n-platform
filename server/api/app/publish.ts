@@ -1,9 +1,11 @@
 import * as semver from 'semver'
+import CryptoJS from 'crypto-js'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
-  let allAppInfo: any = await useStorage().getItem(`redis:appList`) || {}
+  let appList: any = await useStorage().getItem(`redis:appList`) || {}
+  let appMap = appList ? new Map(appList) : new Map()
   let currentAppInfo: any = await useStorage().getItem(`redis:${body.uuid}-appInfo`) || {}
 
   if(Object.keys(currentAppInfo).length === 0) {
@@ -23,10 +25,13 @@ export default defineEventHandler(async (event) => {
     }
     
     const newVersion = semver.inc(version, 'patch')
-    currentAppInfo.version = newVersion
-    allAppInfo[name].version = newVersion
+    const checksum = CryptoJS.SHA1(body.data).toString()
 
-    await useStorage().setItem(`redis:appList`, allAppInfo)
+    currentAppInfo.version = newVersion
+    currentAppInfo.checksum = checksum
+    appMap.set(name, currentAppInfo)
+
+    await useStorage().setItem(`redis:appList`,  Array.from(appMap))
     await useStorage().setItem(`redis:${body.uuid}-appInfo`, currentAppInfo)
     await useStorage().setItem(`redis:${body.uuid}-current`, body.data)
     await useStorage().setItem(`redis:${body.uuid}-${newVersion}`, body.data)

@@ -4,7 +4,7 @@
       <!-- <el-tab-pane class="index-tabs-pane" v-for="item in languageList" :key="item.label" :label="item.label" :name="item.value"> -->
       <header class="index-header">
         <div class="index-header-left">
-          <el-button type="primary"  class="index-header-left-item" @click="navigateTo({ path: '/'})">返回</el-button>
+          <el-button type="primary"  class="index-header-left-item" @click="back">返回</el-button>
           <div class="index-header-left-item">
             <b>应用名称：</b>
             <span>{{ appInfo?.name || '-'}}</span>
@@ -36,8 +36,8 @@
             </template>
           </el-dropdown>
           <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
-          <el-button type="primary" @click="save">保存</el-button>
-          <el-button type="primary" @click="publish">发布</el-button>
+          <el-button type="primary" :disabled="tableData.length === 0" @click="save">保存</el-button>
+          <el-button type="primary" :disabled="tableData.length === 0" @click="publish">发布</el-button>
 
         </div>
       </header>
@@ -67,13 +67,15 @@
     <!-- </el-tabs> -->
     <w-diff v-if="Object.keys(diffArealyExistLangResult).length !== 0" :data="diffArealyExistLangResult" />
     <w-translate v-if="batchTranslateDialogVisible" :cb="batchTranslateCb" :data="tableData" />
+    <el-backtop :right="100" :bottom="500" style="z-index: 100"/>
   </div>
 </template>
 
 <script lang="ts" setup>
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
   import * as XLSX from 'xlsx';
   import type { Action } from 'element-plus'
+  import CryptoJS from 'crypto-js'
 
   interface FileListType {
     data: Record<string, string>
@@ -112,7 +114,14 @@
   const route = useRoute()
 
   onBeforeMount(() => {
+    console.log('app-onBeforeMount')
     queryAppInfo(true)
+  })
+
+  // use sha1 real-time computing multilingual data, sure data whether change.
+  const contentChecksum = computed(() => {
+    const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+    return CryptoJS.SHA1(JSON.stringify(currentTable2StanderdJson)).toString()
   })
 
   const queryAppInfo = async (isQueryCurrentVersionData?: boolean) => {
@@ -198,7 +207,7 @@
               type: 'error',
             })
           } else {
-            console.log(resultXml)
+            console.log('xml', resultXml)
             //@ts-ignore
             standerdJson = resultXml
           }
@@ -287,7 +296,6 @@
     rowIndex: number
     columnIndex: number
   }) => {
-    console.log(column)
     // when content is empty, current cell background color set warning color.
     if(column.property !== 'code' && column.property !== 'handle' && column.type !== "selection" && column.type !== "index") {
       if (!row[column.property]) {
@@ -316,8 +324,9 @@
         break;
       case 'json':
         for ( const item in standerdJson ) {
-          exportFile({data: standerdJson[item], name: item, type: fileType})
+          exportFile({data: JSON.stringify(standerdJson[item], null, 4), name: item, type: fileType})
         }
+        break;
       case 'xml':
         for ( const item in standerdJson ) {
           await fileParse(standerdJson[item], item, fileType)
@@ -482,6 +491,12 @@
   }
 
   const save = async () => {
+    if(contentChecksum.value === appInfo.value.checksum) {
+      ElMessageBox.alert('内容未更改，不可保存！', '提示', {
+        confirmButtonText: '好的',
+      })
+      return
+    }
     const loading = ElLoading.service({
       lock: true,
       text: '保存中...',
@@ -511,6 +526,12 @@
   }
 
   const publish = async () => {
+    if(contentChecksum.value === appInfo.value.checksum) {
+      ElMessageBox.alert('内容未更改，不可发布！', '提示', {
+        confirmButtonText: '好的',
+      })
+      return
+    }
     const loading = ElLoading.service({
       lock: true,
       text: '发布中...',
@@ -537,6 +558,39 @@
         message,
         type: 'error',
       })
+    }
+  }
+
+  const back = () => {
+    // checksum different, content changed, popup prompt.
+    if(contentChecksum.value !== appInfo.value.checksum) {
+      ElMessageBox.alert(
+        `
+          <div>
+            请保存或发布已更改的数据，若继续退出，将删除已有的更改！
+          </div>
+        `, 
+        '提示', 
+        {
+          showClose: false,
+          customStyle: { maxWidth: '80vw' },
+          dangerouslyUseHTMLString: true,
+          closeOnClickModal: false,
+          showCancelButton: true,
+          confirmButtonText: '回去保存',
+          cancelButtonText: "放弃更改",
+          callback: (action: Action) => {
+            if ( action === 'confirm') {
+
+            } else if( action === 'cancel') {
+              navigateTo({ path: '/'})
+            }
+          },
+        }
+      )
+    } else {
+      // checksum the same, content not changed.
+      navigateTo({ path: '/'})
     }
   }
 
