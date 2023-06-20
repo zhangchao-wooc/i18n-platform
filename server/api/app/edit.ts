@@ -14,24 +14,23 @@ export default defineEventHandler(async (event) => {
     return result
   }
 
-  let appList: any = await useStorage().getItem('redis:appList')
-  let appMap = appList ? new Map(appList) : new Map()
+  let appList: any = await useStorage().getItem('redis:appList') || {}
   const currentAppInfo: any = await useStorage().getItem(`redis:${uuid}-appInfo`) || {}
 
   // name is not change.
-  if(appMap.has(data.name) && appMap.get(data.name).uuid !== uuid) {
+  if(Reflect.has(appList, data.name) && appList[data.name].uuid !== uuid) {
     // new name is exit, please repeat edit.
     result.message = '应用名称已存在，请重新编辑应用名称！'
     return result
   }
 
-  if(!appMap.has(data.name) || (appMap.has(data.name) && appMap.get(data.name).uuid == uuid)) {
+  if(!Reflect.has(appList, data.name) || (Reflect.has(appList, data.name) && appList[data.name].uuid == uuid)) {
     result.code = 200
     let newCurrentAppInfo = {...currentAppInfo, ...data}
-    !appMap.has(data.name) && appMap.delete(currentAppInfo.name)
-    appMap.set(data.name, newCurrentAppInfo)
+    !Reflect.has(appList, data.name) && Reflect.deleteProperty(appList, currentAppInfo.name)
+    appList[data.name] = newCurrentAppInfo
 
-    await useStorage().setItem('redis:appList', Array.from(appMap))
+    await useStorage().setItem('redis:appList', appList)
     await useStorage().setItem(`redis:${body.uuid}-appInfo`, newCurrentAppInfo)
   }
 

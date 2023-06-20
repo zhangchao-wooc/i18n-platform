@@ -1,11 +1,33 @@
 <template>
   <div class="diff">
     <div class="diff-upload">
-      <w-upload v-if="fileList.length !== 2" class="diff-upload-button" type="button" :buttonText="buttonText" :accept="accept" :fileUpload="fileUpload"  />
-      <el-button v-else type="primary" class="diff-upload-button" @click="clearFile">
+      <el-button v-if="fileList.length > 0" type="primary" class="diff-upload-button" @click="clearFile">
         清空文件
         <el-icon  class="diff-upload-button-icon"><Delete /></el-icon>
       </el-button>
+      <el-button :disabled="fileList.length !== 2" type="primary" @click="contrast">
+        开始比对
+      </el-button>
+    </div>
+
+    <div class="diff-content">
+      <div class="diff-content-source">
+        {{ fileList.length }}
+        <pre v-if="fileList.length > 0" class="json-show">
+          {{ JSON.stringify(fileList[0].data, null, 4) }}
+        </pre>
+        <el-empty v-else>
+          <w-upload v-if="fileList.length === 0" class="diff-upload-button" type="button" buttonText="上传原数据" :accept="accept" :fileUpload="fileUpload"  />
+        </el-empty>
+      </div>
+      <div class="diff-content-contrast">
+        <pre v-if="fileList.length > 1" class="json-show">
+          {{ JSON.stringify(fileList[1].data, null, 4) }}
+        </pre>
+        <el-empty v-else>
+          <w-upload v-if="fileList.length === 1" class="diff-upload-button" type="button" buttonText="上传新数据" :accept="accept" :fileUpload="fileUpload"  />
+        </el-empty>
+      </div>
     </div>
 
     <el-dialog
@@ -38,15 +60,15 @@
           <el-icon  class="diff-upload-button-icon"><Folder /></el-icon>
         </el-button>
       </template>
+
       <div class="diff-dialog-info">
-        <div class="diff-dialog-info-item" v-for="item in Object.keys(JSON.parse(diffResult))" :key="item">
-        {{ exportDiffTypeList.filter(d => d.value === item)[0].label }} : {{ JSON.parse(diffResult)[item].length }}</div>
+        <div class="diff-dialog-info-item" v-for="item in Object.keys(diffResult)" :key="item">
+        {{ exportDiffTypeList.filter(d => d.value === item)[0].label }} : {{ diffResult[item].length }}</div>
       </div>
-      <el-input
-        v-model="diffResult"
-        autosize
-        type="textarea"
-      />
+
+      <pre class="json-show">
+        {{diffResult}}
+      </pre>
     </el-dialog>
   </div>
 </template>
@@ -114,7 +136,7 @@
 
   const accept = ref(initAccept)
   const fileList = ref<FileListType[]>([])
-  const diffResult = ref('')
+  const diffResult = ref<Record<string, any>>({})
   const dialogVisible = ref(false)
   const exportFileType = ref('.json')
   const exportFileTypeList = ref<Record<string, string>[]>(initExportFileTypeList)
@@ -131,7 +153,7 @@
   })
 
   const fileUpload = async (file: any) => {
-    
+    console.log('1')
     const loading = ElLoading.service({
       lock: true,
       text: '文件处理中...',
@@ -140,22 +162,25 @@
 
     const fielData = file[file.length - 1]
     const type = fileTypeMap[fielData['file']['type']]
+    const name = fielData['file']['name'].split('.')[0]
     
     if(typeof type !== 'string') return ElNotification({
-        title: `文件类型错误`,
-        message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${fielData['file']['type']}`),
-        type: 'error',
-      })
+      title: `文件类型错误`,
+      message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${fielData['file']['type']}`),
+      type: 'error',
+    })
     
-    let data: Record<string, string> = {}
+    let data: Record<string, any> = {}
 
     if(type === 'json') {
+      // Reflect.set(data, name, JSON.parse(fielData['fileContent']))
       data = JSON.parse(fielData['fileContent'])
     }
 
     if(type === 'xml') {
       const result = await parserXmlData('xml', fielData['fileContent'])
       console.log('xml', result)
+      // Reflect.set(data, name, result)
       data = result
     }
 
@@ -164,20 +189,11 @@
       console.log('xlsx', type)
     }
     
-    const name = fielData['file']['name'].split('.')[0]
-
     fileList.value.push({
       type,
       data,
       name
     })
-
-    if(fileList.value.length === 2) {
-      console.log(1)
-      dialogVisible.value = true
-      diffResult.value = JSON.stringify(diffJson(fileList.value[0].data, fileList.value[1].data), null, 4)
-      
-    }
 
     setTimeout(() => {
       loading.close()
@@ -185,42 +201,58 @@
   }
 
   const parserXmlData = async (fileType: 'xml' | 'xlsx', fileData: string) => {
-    const { data, pending, error } = await useFetch('/api/parser', {
+    const { data, message, code } = await $fetch(`/api/parser/${fileType}`, {
       method: "post",
       body: {
         fileType,
         fileData
       }
     })
-    if (!error.value) {
-      return data.value?.data || {}
+    if (code === 200) {
+      return data || {}
     } else {
-      console.log(error.value)
+      ElMessage({message,  type: 'error'})
       return {}
     }
   }
 
   const exportFileToLocal = async () => {
-    const { data, pending, error } = await useFetch('/api/convert', {
+    const exportData = exportDiffType.value === 'all' ? diffResult.value : diffResult.value[exportDiffType.value] || {}
+
+    switch(exportFileType.value) {
+      case '.json':
+        exportFile({
+          data: JSON.stringify(exportData, null, 4),
+          name: `diff-${exportDiffType.value}-${new Date().getTime()}`,
+          type: 'json'
+        })
+        break;
+      case '.xml':
+        exportXml(exportData)
+        break;
+      default:
+    }
+  }
+
+  const exportXml = async (exportData: any) => {
+    const { data, message, code } = await $fetch('/api/convert', {
       method: "post",
       body: {
-        data: JSON.parse(diffResult.value),
+        data: exportData,
         type: 'xml',
         scene: 'DIFF',
         diffType: exportDiffType.value
       }
     })
-    if (!error.value) {
+    if (code === 200) {
       exportFile({
-        data: data.value?.data,
-        name: exportDiffType.value,
+        data,
+        name: `diff-${exportDiffType.value}-${new Date().getTime()}`,
         type: 'xml'
       })
     } else {
-      console.log(error.value)
-      return {}
+      ElMessage({message,  type: 'error'})
     }
-    
   }
 
   const clearFile = () => {
@@ -230,7 +262,13 @@
 
   const handleClose = () => {
     dialogVisible.value = false
-    diffResult.value = JSON.stringify({}, null, 4)
+    diffResult.value = {}
+  }
+
+  const contrast = () => {
+    dialogVisible.value = true
+    // console.log(diffStanderdJsonCode(fileList.value[0].data, fileList.value[1].data))
+    diffResult.value = diffJson(fileList.value[0].data, fileList.value[1].data)
   }
 </script>
 
@@ -250,6 +288,16 @@
       }
     }
 
+    &-content {
+      padding: 10px;
+      display: flex;
+      &-source, &-contrast {
+        flex: 1;
+        display: flex;
+        justify-content: center
+      }
+    }
+
     &-dialog {
       
       &-info {
@@ -263,6 +311,14 @@
         margin-right: 10px;
       }
     }
+  }
+
+  .json-show {
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    height: 70vh;
+    overflow: auto;
   }
 
   ::v-deep(.el-dialog__header) {

@@ -12,15 +12,14 @@ export default defineEventHandler(async (event) => {
       message: '应用不存在！'
     }
   } else {
-    let appList: any = await useStorage().getItem('redis:appList')
-    let appMap = appList ? new Map(appList) : new Map()
+    let appList: any = await useStorage().getItem('redis:appList') || {}
     const checksum = CryptoJS.SHA1(body.data).toString()
     currentAppInfo.checksum = checksum
 
-    appMap.set(currentAppInfo.name, currentAppInfo)
+    appList[currentAppInfo.name] = currentAppInfo
 
     await useStorage().setItem(`redis:${body.uuid}-current`, body.data)
-    await useStorage().setItem('redis:appList', Array.from(appMap))
+    await useStorage().setItem('redis:appList', appList)
     await useStorage().setItem(`redis:${body.uuid}-appInfo`, currentAppInfo)
 
     return {

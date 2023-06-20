@@ -93,12 +93,9 @@ export const diffCode = (oldData: Record<string, string>, newData: Record<string
 export const diffStanderdJsonCode = (oldData: Record<string, any>, newData: Record<string, any>) => {
   const result: Record<string, any> = {};
 
-  const list = Object.keys(oldData)
-
   for (const lang in newData) {
-    for (const item in newData[lang])
-    if (!oldData[list[0]].hasOwnProperty(item)) {
-      result[lang][item] = newData[lang][item]
-    }
+    result[lang] = diffJson(oldData[lang] || {}, newData[lang]) 
   }
+
+  return result
 }

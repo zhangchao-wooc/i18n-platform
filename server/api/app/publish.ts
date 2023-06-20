@@ -5,7 +5,6 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   let appList: any = await useStorage().getItem(`redis:appList`) || {}
-  let appMap = appList ? new Map(appList) : new Map()
   let currentAppInfo: any = await useStorage().getItem(`redis:${body.uuid}-appInfo`) || {}
 
   if(Object.keys(currentAppInfo).length === 0) {
@@ -29,9 +28,9 @@ export default defineEventHandler(async (event) => {
 
     currentAppInfo.version = newVersion
     currentAppInfo.checksum = checksum
-    appMap.set(name, currentAppInfo)
+    appList[name] = currentAppInfo
 
-    await useStorage().setItem(`redis:appList`,  Array.from(appMap))
+    await useStorage().setItem(`redis:appList`,  appList)
     await useStorage().setItem(`redis:${body.uuid}-appInfo`, currentAppInfo)
     await useStorage().setItem(`redis:${body.uuid}-current`, body.data)
     await useStorage().setItem(`redis:${body.uuid}-${newVersion}`, body.data)

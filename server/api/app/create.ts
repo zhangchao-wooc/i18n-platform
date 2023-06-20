@@ -2,10 +2,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  let appList: any = await useStorage().getItem('redis:appList')
-  let appMap = appList ? new Map(appList) : new Map()
+  let appList: any = await useStorage().getItem('redis:appList') || {}
 
-  if(body.name && appMap.has(body.name)) {
+  if(body.name && Reflect.has(appList, body.name)) {
     return {
       code: 0,
       data: null,
@@ -13,7 +12,7 @@ export default defineEventHandler(async (event) => {
     }
   } else {
     const uuid = uuidv4()
-    appMap.set(body.name, {
+    Reflect.set(appList, body.name, {
       ...body,
       uuid,
       version: '0.0.0',
@@ -22,8 +21,8 @@ export default defineEventHandler(async (event) => {
       isDelete: false
     })
 
-    await useStorage().setItem('redis:appList', Array.from(appMap))
-    await useStorage().setItem(`redis:${uuid}-appInfo`, appMap.get(body.name))
+    await useStorage().setItem('redis:appList', appList)
+    await useStorage().setItem(`redis:${uuid}-appInfo`,  appList[body.name])
 
     return {
       code: 200,

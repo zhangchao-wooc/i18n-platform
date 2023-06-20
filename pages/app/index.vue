@@ -49,7 +49,7 @@
           <template v-for="item in columns" :key="item.prop" >
             <el-table-column v-bind="item">
               <template #default="scope">
-                <el-input :model-value="scope.row[item.prop]" @input="(e) => changeInput(e, scope.row, item)" />
+                <el-input type="textarea" :model-value="scope.row[item.prop]" autosize @input="(e) => changeInput(e, scope.row, item)" />
               </template>
             </el-table-column>
           </template>
@@ -513,6 +513,7 @@
     loading.close()
 
     if(code === 200) {
+      queryAppInfo(false)
       ElMessage({
         message: '保存成功',
         type: 'success',
@@ -563,7 +564,7 @@
 
   const back = () => {
     // checksum different, content changed, popup prompt.
-    if(contentChecksum.value !== appInfo.value.checksum) {
+    if(appInfo.value.checksum !== '' && contentChecksum.value !== appInfo.value.checksum) {
       ElMessageBox.alert(
         `
           <div>
