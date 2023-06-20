@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     data: {}
   }
 
-  result.data = parserXml(body)
+  result.data = parserXml(body.fileData)
 
   return result
 })

@@ -277,7 +277,7 @@
       // headers: {
       //   'Content-Type': 'application/octet-stream'
       // },
-      body: fileData
+      body: { fileData }
     })
 
     if (!error.value) {
