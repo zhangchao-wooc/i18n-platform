@@ -29,13 +29,12 @@
 
       <el-main><slot /></el-main>
 
-      <el-footer>
+      <!-- <el-footer>
         <div class="el-footer-title">友情链接</div>
         <div>
           <a class="el-footer-item" href="https://mini-i18n.wooc.top" target="_blank">mini-i18n</a>
         </div>
-        
-      </el-footer>
+      </el-footer> -->
     </el-container>
   </div>
 </template>
@@ -130,7 +129,7 @@
     }
 
     .el-main {
-      height: calc(100vh - 120px)
+      padding: 0;
     }
 
     .el-footer {

@@ -5,23 +5,16 @@
       <header class="index-header">
         <div class="index-header-left">
           <el-button type="primary"  class="index-header-left-item" @click="back">返回</el-button>
-          <div class="index-header-left-item">
-            <b>应用名称：</b>
-            <span>{{ appInfo?.name || '-'}}</span>
-          </div>
-          <div  class="index-header-left-item">
-            <b>多语言版本：</b>
-            <span>{{ appInfo?.version || '-'}}</span>
-          </div>
+          <el-popconfirm :title="`确认删除 ${selectionList.length} 条 code ?`" confirm-button-text="确认" cancel-button-text="取消" @confirm="batchDelete">
+            <template #reference>
+              <el-button type="primary" :disabled="selectionList.length === 0" >批量删除</el-button>
+            </template>
+          </el-popconfirm>
+          <el-button type="primary" @click="editCodeDialogOpen(false)">添加 code</el-button>
+          <el-button type="primary" @click="deleteLang">删除语言</el-button>
         </div>
       
         <div class="index-header-control">
-          <div class="index-header-control-info">
-            <span>词条总数：{{ tableData.length }}</span>
-            <!-- <template v-for="item in columns" :key="item.label">
-              <span>{{ item.label }} 空值数量： {{  }}</span>
-            </template> -->
-          </div>
           <w-upload class="index-header-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
           <el-dropdown class="index-header-control-export" :disabled="tableData.length === 0" split-button type="primary">
             导出文件
@@ -38,11 +31,30 @@
           <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
           <el-button type="primary" :disabled="tableData.length === 0" @click="save">保存</el-button>
           <el-button type="primary" :disabled="tableData.length === 0" @click="publish">发布</el-button>
-
         </div>
       </header>
+
+      <section class="index-section">
+        <div class="index-section-control">
+          <el-collapse>
+            <el-collapse-item title="应用详情" name="1">
+              <div class="index-header-left-item">
+                <b>应用名称：</b>
+                <span>{{ appInfo?.name || '-'}}</span>
+              </div>
+              <div  class="index-header-left-item">
+                <b>多语言版本：</b>
+                <span>{{ appInfo?.version || '-'}}</span>
+              </div>
+              <div  class="index-header-left-item">
+                <b>词条总数：</b>
+                <span>{{ tableData.length }}</span>
+              </div>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
         <!-- code list -->
-        <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName">
+        <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName" @selection-change="(selection) => selectionList = selection" size="small">
           <el-table-column  type="index" width="50" />
           <el-table-column type="selection" width="55" />
           <el-table-column label="Code" prop="code"  />
@@ -53,21 +65,40 @@
               </template>
             </el-table-column>
           </template>
-          <el-table-column label="操作" prop="handle" width="85px" fixed='right'>
-            <template #default="scope">
+          <el-table-column label="操作" prop="handle" width="100px" fixed='right'>
+            <template #default="scope" >
               <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', scope)">
                 <template #reference>
-                  <el-button type="danger" size="small">删除</el-button>
+                  <el-button type="danger" size="small"><el-icon><Delete /></el-icon></el-button>
                 </template>
               </el-popconfirm>
+              <el-button type="primary" size="small" @click="editCodeDialogOpen(true, scope.row)"><el-icon><Edit /></el-icon></el-button>
             </template>
           </el-table-column>
         </el-table>
+      </section>
       <!-- </el-tab-pane> -->
     <!-- </el-tabs> -->
     <w-diff v-if="Object.keys(diffArealyExistLangResult).length !== 0" :data="diffArealyExistLangResult" />
     <w-translate v-if="batchTranslateDialogVisible" :cb="batchTranslateCb" :data="tableData" />
-    <el-backtop :right="100" :bottom="500" style="z-index: 100"/>
+    <!-- edit code -->
+    <el-dialog :model-value="codeDialogFormVisible" :title="`${isEditCode ? '编辑' : '新增' } code`" width="800" @close="editCodeDialogClose(codeRuleFormRef)">
+      <el-form :model="codeForm" :rules="codeFormrules" ref="codeRuleFormRef">
+        <el-form-item label="code" :label-width="formLabelWidth" prop="code">
+          <el-input type="textarea" autosize v-model="codeForm.code" :disabled="isEditCode"/>
+        </el-form-item>
+        <el-form-item :label="item.label" :label-width="formLabelWidth" :prop="item.prop" v-for="item in columns" :key="item.label">
+          <el-input type="textarea" autosize v-model="codeForm[item.prop]" />
+        </el-form-item>
+        <el-form-item>
+          <template style="width: 100%; display: flex; justify-content: center;">
+            <el-button type="primary" @click="editCode(codeRuleFormRef)">提交</el-button>
+            <el-button @click="editCodeDialogClose(codeRuleFormRef)">取消</el-button>
+          </template>
+        </el-form-item>
+      </el-form>
+    </el-dialog>
+    <el-backtop :right="50" :bottom="50" style="z-index: 100"/>
   </div>
 </template>
 
@@ -76,6 +107,7 @@
   import * as XLSX from 'xlsx';
   import type { Action } from 'element-plus'
   import CryptoJS from 'crypto-js'
+  import type { FormInstance, FormRules } from 'element-plus' 
 
   interface FileListType {
     data: Record<string, string>
@@ -106,10 +138,23 @@
   const appInfo = ref<Record<string, any>>({})
   const tableData = ref<Record<string, string>[]>([])
   const columns = ref<Record<string, string>[]>([])
+  const selectionList = ref<Record<string, string>[]>([])
   const accept = ref(initAccept)
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
   const diffArealyExistLangResult = ref<Record<string, any>>({})
   const batchTranslateDialogVisible = ref(false)
+  const isEditCode = ref<boolean>(false)
+  const codeDialogFormVisible = ref<boolean>(false)
+  const formLabelWidth = '80px'
+  const codeRuleFormRef = ref<FormInstance>()
+  const codeForm = ref<Record<string, string>>({
+    code: ''
+  })
+  const codeFormrules = reactive<FormRules>({
+    code: [
+      { required: true, message: '请输入', trigger: 'blur' }
+    ]
+  })
 
   const route = useRoute()
 
@@ -156,10 +201,7 @@
       columns.value = resultClumns
       tableData.value = resultTableData
     } else {
-      ElMessage({
-        message,
-        type: 'error',
-      })
+      ElMessage({ message, type: 'error' })
     }
   }
 
@@ -468,11 +510,65 @@
     } else if (handle === 'ADD') {
       tableData.value.push(data)
     }
+  }
+
+  const batchDelete = () => {
+    const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+    const selectionStanderdJson = table2StanderdJson(selectionList.value)
+
+    for(const lang in selectionStanderdJson) {
+      for(const item in selectionStanderdJson[lang]) {
+        Reflect.deleteProperty(currentTable2StanderdJson[lang], item)
+      }
+    }
+    const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+    tableData.value = resultData
+    ElMessage({ message: "删除成功", type: 'success' })
+  }
+
+  const editCodeDialogOpen = (isEdit: boolean, row?: Record<string, string>) => {
+    codeDialogFormVisible.value = true
+    isEditCode.value = isEdit
     
+    if(isEdit && row) {
+      codeForm.value = {...row}
+    } else {
+      codeForm.value = { code: ''}
+    }
+  }
+
+  const editCode = async (formEl: FormInstance | undefined) => {
+    console.log('editCode')
+    if (!formEl) return
+    await formEl.validate(async (valid, fields) => {
+      if (valid) {
+        const index = tableData.value.findIndex(item => item.code == codeForm.value.code.trim())
+        if(isEditCode.value) {
+          tableData.value[index] = {...codeForm.value}
+        } else if(index === -1) {
+          tableData.value.push({...codeForm.value})
+        } else {
+          ElMessage({ message: 'code 已存在，请重新输入！', type: 'warning' })
+          return
+        }
+
+        ElMessage({ message: `${isEditCode.value ? '编辑' : '新增'} code 成功`, type: 'success' })
+        editCodeDialogClose(formEl)
+      }
+    })
+  }
+
+  const editCodeDialogClose = (formEl: FormInstance | undefined) => {
+    formEl?.clearValidate()
+    codeDialogFormVisible.value = false
   }
 
   const batchTranslate = () => {
     batchTranslateDialogVisible.value = true
+  }
+
+  const deleteLang = () => {
+
   }
 
   const batchTranslateCb = (translateResult?: Record<string, any>) => {
@@ -514,15 +610,9 @@
 
     if(code === 200) {
       queryAppInfo(false)
-      ElMessage({
-        message: '保存成功',
-        type: 'success',
-      })
+      ElMessage({ message: '保存成功', type: 'success' })
     } else {
-      ElMessage({
-        message,
-        type: 'error',
-      })
+      ElMessage({ message, type: 'error' })
     }
   }
 
@@ -550,15 +640,9 @@
 
     if(code === 200) {
       queryAppInfo(false)
-      ElMessage({
-        message: '发布成功',
-        type: 'success',
-      })
+      ElMessage({ message: '发布成功', type: 'success' })
     } else {
-      ElMessage({
-        message,
-        type: 'error',
-      })
+      ElMessage({ message, type: 'error' })
     }
   }
 
@@ -566,11 +650,7 @@
     // checksum different, content changed, popup prompt.
     if(appInfo.value.checksum !== '' && contentChecksum.value !== appInfo.value.checksum) {
       ElMessageBox.alert(
-        `
-          <div>
-            请保存或发布已更改的数据，若继续退出，将删除已有的更改！
-          </div>
-        `, 
+        `<div>请保存或发布已更改的数据，若继续退出，将删除已有的更改！</div>`, 
         '提示', 
         {
           showClose: false,
@@ -581,9 +661,7 @@
           confirmButtonText: '回去保存',
           cancelButtonText: "放弃更改",
           callback: (action: Action) => {
-            if ( action === 'confirm') {
-
-            } else if( action === 'cancel') {
+            if( action === 'cancel') {
               navigateTo({ path: '/'})
             }
           },
@@ -601,15 +679,18 @@
   .index {
     &-header {
       position: sticky;
-      top: -20px;
-      padding: 20px 5px ;
+      top: 0px;
+      padding: 10px 5px ;
       width: 100%;
       display: flex;
       justify-content: space-between;
+      flex-wrap: wrap;
       border-bottom: solid 1px var(--el-menu-border-color);
       background-color: #fff;
+      box-sizing: border-box;
       z-index: 10;
       &-left {
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         &-item {
@@ -617,6 +698,7 @@
         }
       }
       &-control {
+        flex-shrink: 0;
         display: flex;
         justify-content: flex-end;
 
@@ -629,6 +711,16 @@
         &-upload,&-export {
           margin: 0 5px;
         }
+      }
+    }
+
+    &-section {
+      &-control {
+        position: sticky;
+        top: 20px;
+        padding: 0 10px;
+        z-index: 10;
+        box-sizing: border-box;
       }
     }
    

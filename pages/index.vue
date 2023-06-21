@@ -2,11 +2,9 @@
   <div class="home">
     <header class="home-header">
       <el-button type="primary" @click="() => {
-        
         if(dialogFormVisible) {
           dialogFormVisible = false
         }
-        console.log(dialogFormVisible)
         dialogFormVisible = true
       }">创建应用</el-button>
     </header>
@@ -51,7 +49,7 @@
       </el-card>
     </div>
     <!-- create app -->
-    <el-dialog :model-value="dialogFormVisible" :title="isEditApp ? '编辑应用' : '新建应用'" width="400">
+    <el-dialog :model-value="dialogFormVisible" :title="isEditApp ? '编辑应用' : '新建应用'" width="400" @close="createDialogClose">
       <el-form :model="form" :rules="rules" ref="ruleFormRef">
         <el-form-item label="应用名称" :label-width="formLabelWidth" prop="name">
           <el-input v-model="form.name" autocomplete="off" />
@@ -74,14 +72,6 @@
 
 <script lang="ts" setup>
   import { ref, reactive } from 'vue'
-  import {
-  Check,
-  Delete,
-  Edit,
-  Message,
-  Search,
-  Star,
-} from '@element-plus/icons-vue'
   import type { FormInstance, FormRules } from 'element-plus' 
   import * as dayjs from 'dayjs'
 
@@ -91,10 +81,7 @@
   const isEditApp = ref<boolean>(false)
   const currentActiveAppInfo = ref({ uuid: null })
   const formLabelWidth = '80px'
-  const form = reactive({
-    name: '',
-    desc: '',
-  })
+  const form = reactive({ name: '', desc: '' })
   const ruleFormRef = ref<FormInstance>()
   const rules = reactive<FormRules>({
     name: [
@@ -138,17 +125,11 @@
         })
       
         if(code === 200) {
-          ElMessage({
-            message: '创建成功',
-            type: 'success',
-          })
+          ElMessage({ message: '创建成功', type: 'success' })
           createDialogClose()
           getAppList()
         } else {
-          ElMessage({
-            message,
-            type: 'error',
-          })
+          ElMessage({ message, type: 'error' })
         }
       } else {
         console.log('error submit!', fields)
@@ -166,17 +147,11 @@
         })
       
         if(code === 200) {
-          ElMessage({
-            message: '编辑成功',
-            type: 'success',
-          })
+          ElMessage({ message: '编辑成功', type: 'success' })
           createDialogClose()
           getAppList()
         } else {
-          ElMessage({
-            message,
-            type: 'error',
-          })
+          ElMessage({ message, type: 'error' })
         }
       } else {
         console.log('error submit!', fields)
@@ -192,15 +167,9 @@
 
     if(code === 200) {
       getAppList()
-      ElMessage({
-        message: '删除成功',
-        type: 'success',
-      })
+      ElMessage({ message: '删除成功', type: 'success' })
     } else {
-      ElMessage({
-        message,
-        type: 'error',
-      })
+      ElMessage({ message, type: 'error' })
     }
   }
 
@@ -212,7 +181,17 @@
       isEditApp.value = true
       dialogFormVisible.value = true
     } else if(command === 'delete') {
-      deleteApp(item.name)
+      ElMessageBox.confirm(
+        '项目删除为高危操作，请三思而后行！',
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '三思一下',
+          type: 'warning',
+        }) 
+        .then(() => {
+          deleteApp(item.name)
+        })
     }
   }
 
@@ -226,6 +205,7 @@
 
 <style lang="scss" scoped>
   .home {
+    padding: 0 10px;
     &-header {
       height: 80px;
       display: grid;
@@ -238,12 +218,6 @@
       grid-template-rows: 250px;
       gap: 20px;
       &-card {
-        // &:hover {
-        //   box-shadow: var(--el-box-shadow-dark);
-        // }
-        // ::v-deep(.el-card) {
-        //   box-shadow: var(--el-box-shadow-lighter);
-        // }
         ::v-deep(.el-card__header) {
           padding: 10px 10px;
         }
