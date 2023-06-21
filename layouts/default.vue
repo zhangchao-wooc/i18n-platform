@@ -21,9 +21,7 @@
                 </el-menu-item>
               </el-sub-menu>
             </template>
-            
           </template>
-          
         </el-menu>
       </el-header>
 
@@ -109,6 +107,12 @@
 
 <style scoped lang="scss">
   .layout {
+    width: 100%;
+    height: 100%;
+    .el-container {
+      width: 100%;
+      height: 100vh;
+    }
     .el-header {
       display: flex;
       justify-content: space-between;
@@ -130,6 +134,8 @@
 
     .el-main {
       padding: 0;
+      width: 100%;
+      height: 100%;
     }
 
     .el-footer {

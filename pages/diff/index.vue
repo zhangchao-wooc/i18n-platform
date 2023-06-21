@@ -12,7 +12,7 @@
 
     <div class="diff-content">
       <div class="diff-content-source">
-        {{ fileList.length }}
+        <p v-if="fileList.length > 0">原数据</p>
         <pre v-if="fileList.length > 0" class="json-show">
           {{ JSON.stringify(fileList[0].data, null, 4) }}
         </pre>
@@ -21,6 +21,7 @@
         </el-empty>
       </div>
       <div class="diff-content-contrast">
+        <p v-if="fileList.length > 1">新数据</p>
         <pre v-if="fileList.length > 1" class="json-show">
           {{ JSON.stringify(fileList[1].data, null, 4) }}
         </pre>
@@ -274,7 +275,9 @@
 
 <style lang="scss" scoped>
   .diff {
+    height: 100%;
     &-upload {
+      padding: 10px;
       display: flex;
       justify-content: flex-end;
       &-button {
@@ -289,12 +292,17 @@
     }
 
     &-content {
+      height: calc(100% - 60px);
       padding: 10px;
       display: flex;
+      justify-content: space-between;
+      box-sizing: border-box;
       &-source, &-contrast {
-        flex: 1;
+        width: 49%;
         display: flex;
-        justify-content: center
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
     }
 
@@ -314,10 +322,12 @@
   }
 
   .json-show {
+    margin: 0;
     background-color: #000;
     color: #fff;
     padding: 10px;
-    height: 70vh;
+    width: 100%;
+    height: 100%;
     overflow: auto;
   }
 

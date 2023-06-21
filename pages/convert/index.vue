@@ -181,12 +181,12 @@
   .convert {
     height: 100%;
     &-contorl {
+      padding: 10px;
       display: flex;
       justify-content: flex-end;
     }
 
     &-section {
-      margin-top: 20px;
       position: relative;
       display: flex;
       justify-content: center;
