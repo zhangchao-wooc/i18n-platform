@@ -11,7 +11,7 @@
             </template>
           </el-popconfirm>
           <el-button type="primary" @click="editCodeDialogOpen(false)">添加 code</el-button>
-          <el-button type="primary" @click="deleteLang">删除语言</el-button>
+          <el-button type="primary" @click="deleteLanguageDialogVisible = true">删除语言</el-button>
         </div>
       
         <div class="index-header-control">
@@ -98,6 +98,19 @@
         </el-form-item>
       </el-form>
     </el-dialog>
+    <!-- delete language | table column -->
+    <el-dialog :model-value="deleteLanguageDialogVisible" title="删除语言" width="400" @close="deleteLanguageDialogClose">
+      <el-select v-model="selectedDeleteLangList" placeholder="请选择要删除的语言" multiple clearable style="width: 100%">
+        <el-option v-for="item in columns" :key="item.label" :label="item.label" :value="item.prop" />
+      </el-select>
+      <template #footer>
+        <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="deleteLang">
+          <template #reference>
+            <el-button type="primary">确定删除</el-button>
+          </template>
+        </el-popconfirm>
+       </template>
+    </el-dialog>
     <el-backtop :right="50" :bottom="50" style="z-index: 100"/>
   </div>
 </template>
@@ -139,10 +152,12 @@
   const tableData = ref<Record<string, string>[]>([])
   const columns = ref<Record<string, string>[]>([])
   const selectionList = ref<Record<string, string>[]>([])
-  const accept = ref(initAccept)
+  const accept = ref<string>(initAccept)
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
   const diffArealyExistLangResult = ref<Record<string, any>>({})
-  const batchTranslateDialogVisible = ref(false)
+  const batchTranslateDialogVisible = ref<boolean>(false)
+  const deleteLanguageDialogVisible = ref<boolean>(false)
+  const selectedDeleteLangList = ref<string[]>([])
   const isEditCode = ref<boolean>(false)
   const codeDialogFormVisible = ref<boolean>(false)
   const formLabelWidth = '80px'
@@ -568,7 +583,21 @@
   }
 
   const deleteLang = () => {
+    if(selectedDeleteLangList.value.length === 0) return ElMessage({ message: '请选择要删除的语言！', type: 'warning' })
+    const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+    selectedDeleteLangList.value.forEach((item: string) => {
+      Reflect.deleteProperty(currentTable2StanderdJson, item)
+    })
+    const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+    tableData.value = resultData
+    columns.value = resultClumns
+    
+    deleteLanguageDialogClose()
+  }
 
+  const deleteLanguageDialogClose = () => {
+    selectedDeleteLangList.value = []
+    deleteLanguageDialogVisible.value = false
   }
 
   const batchTranslateCb = (translateResult?: Record<string, any>) => {
