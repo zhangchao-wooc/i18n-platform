@@ -10,15 +10,17 @@
           @select="handleSelect"
         >
           <template v-for="item in menuList">
-            <el-menu-item v-if="!item.children" :index="item.index">
-              <NuxtLink :to="item.path">{{ item.label }}</NuxtLink>
-            </el-menu-item>
+            <NuxtLink v-if="!item.children"  :to="item.path">
+              <el-menu-item :index="item.index">{{ item.label }}</el-menu-item>
+            </NuxtLink>
             <template v-else>
               <el-sub-menu :index="item.index">
                 <template #title>{{ item.label }}</template>
-                <el-menu-item v-for="child in item.children" :index="child.index">
-                  <NuxtLink :to="child.path">{{ child.label }}</NuxtLink>
-                </el-menu-item>
+                <NuxtLink :to="child.path" v-for="child in item.children" >
+                  <el-menu-item :index="child.index">
+                    {{ child.label }}
+                  </el-menu-item>
+                </NuxtLink>
               </el-sub-menu>
             </template>
           </template>

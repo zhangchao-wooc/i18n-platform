@@ -204,17 +204,16 @@
       text: '获取数据中...',
       background: 'rgba(0, 0, 0, 0.7)',
     })
-    const {code, data, message} = await $fetch(`/api/app/current`, {
+    const {data, code, message} = await $fetch(`/api/app/current`, {
       method: 'get',
       query: { uuid: appInfo.value.uuid }
     })
-    
     loading.close()
-
     if(code === 200) {
       const { columns: resultClumns, tableData: resultTableData } = standerdJson2Table(data)
       columns.value = resultClumns
       tableData.value = resultTableData
+      
     } else {
       ElMessage({ message, type: 'error' })
     }
@@ -746,9 +745,10 @@
     &-section {
       &-control {
         position: sticky;
-        top: 20px;
+        top: 53px;
         padding: 0 10px;
         z-index: 10;
+        background-color: #fff;
         box-sizing: border-box;
       }
     }

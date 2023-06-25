@@ -115,14 +115,20 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         )
         return 
       }
-      console.log('submit!', translateForm)
+
       const loading = ElLoading.service({
         lock: true,
         text: '翻译中...',
         background: 'rgba(0, 0, 0, 0.7)',
       })
       for(const code in standerdJson.value[translateForm.selectedLang]) {
-        const result = await translate(standerdJson.value[translateForm.selectedLang][code])
+        const sourceValue = standerdJson.value[translateForm.selectedLang][code]
+        let result: unknown = ''
+
+        if(sourceValue.trim().length !== 0) {
+          result = await translate(standerdJson.value[translateForm.selectedLang][code])
+        }
+        
         if (isString(result)) {
           if(translateResult.value[translateForm.targetLang]) {
             translateResult.value[translateForm.targetLang][code] = result
@@ -130,9 +136,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             translateResult.value[translateForm.targetLang] = {}
             translateResult.value[translateForm.targetLang][code] = result
             setTimeout(() => {
-              var element = document.querySelector('.json-show'); // 获取需要滚动的元素
-              // 在内容变化时自动滚动到底部
-              console.log(element)
+              var element = document.querySelector('.json-show');
               //@ts-ignore addEventListener
               element.addEventListener("DOMSubtreeModified", function () {
                 //@ts-ignore
@@ -164,39 +168,33 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 
 const translate = async (value: string) => {
-    const { data, pending, error } = await useFetch('/api/translate', {
-      method: "post",
-      body: {
-        value,
-        sourceLang: translateForm.sourceLang,
-        targetLang: translateForm.targetLang
-      }
-    })
-    if (!error.value) {
-      if(data?.value?.code === 200) {
-        return data?.value?.data
-      } else {
-        ElMessageBox.alert(
-          `
-            <p>错误码：${data?.value?.code}</p>
-            <p>错误信息：${data?.value?.message}</p>  
-            <a href="https://fanyi-api.baidu.com/doc/21" target="_blank">帮助页面</a>
-          `, 
-          '翻译出错', 
-          {
-            dangerouslyUseHTMLString: true,
-            confirmButtonText: '好的',
-            callback: (action: Action) => {
-            },
-          }
-        )
-        return data.value
-      }
-    } else {
-      console.log(error.value)
-      return error.value
+  const { data, code, message } = await $fetch('/api/translate', {
+    method: "post",
+    body: {
+      value,
+      sourceLang: translateForm.sourceLang,
+      targetLang: translateForm.targetLang
     }
+  })
+  if (code === 200) {
+    return data
+  } else {
+    ElMessageBox.alert(
+      `
+        <p>错误码：${code}</p>
+        <p>错误信息：${message}</p>  
+        <a href="https://fanyi-api.baidu.com/doc/21" target="_blank">帮助页面</a>
+      `, 
+      '翻译出错', 
+      {
+        dangerouslyUseHTMLString: true,
+        confirmButtonText: '好的',
+        callback: (action: Action) => {
+        },
+      }
+    )
   }
+}
 
 const handleClose = (handle?: string) => {
   if( handle === 'MERGE') {

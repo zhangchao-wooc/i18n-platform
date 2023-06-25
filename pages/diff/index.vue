@@ -13,18 +13,14 @@
     <div class="diff-content">
       <div class="diff-content-source">
         <p v-if="fileList.length > 0">原数据</p>
-        <pre v-if="fileList.length > 0" class="json-show">
-          {{ JSON.stringify(fileList[0].data, null, 4) }}
-        </pre>
+        <pre v-if="fileList.length > 0" class="json-show">{{ JSON.stringify(fileList[0].data, null, 4) }}</pre>
         <el-empty v-else>
           <w-upload v-if="fileList.length === 0" class="diff-upload-button" type="button" buttonText="上传原数据" :accept="accept" :fileUpload="fileUpload"  />
         </el-empty>
       </div>
       <div class="diff-content-contrast">
         <p v-if="fileList.length > 1">新数据</p>
-        <pre v-if="fileList.length > 1" class="json-show">
-          {{ JSON.stringify(fileList[1].data, null, 4) }}
-        </pre>
+        <pre v-if="fileList.length > 1" class="json-show">{{ JSON.stringify(fileList[1].data, null, 4) }}</pre>
         <el-empty v-else>
           <w-upload v-if="fileList.length === 1" class="diff-upload-button" type="button" buttonText="上传新数据" :accept="accept" :fileUpload="fileUpload"  />
         </el-empty>
@@ -67,9 +63,7 @@
         {{ exportDiffTypeList.filter(d => d.value === item)[0].label }} : {{ diffResult[item].length }}</div>
       </div>
 
-      <pre class="json-show">
-        {{diffResult}}
-      </pre>
+      <pre class="json-show" style="width:auto">{{diffResult}}</pre>
     </el-dialog>
   </div>
 </template>
@@ -78,7 +72,6 @@
   import { ref, computed } from 'vue'
   import { diffJson } from '../../utils/diff'
   import { exportFile } from '../../utils/exportFile'
-
 
   definePageMeta({
     title: 'Diff - i18n-platform'
@@ -144,15 +137,6 @@
   const exportDiffType = ref<'add' | 'remove' | 'change' | 'empty' | 'all'>('add')
   const exportDiffTypeList = ref<Record<string, string>[]>(initExportDiffTypeList)
 
-  const buttonText = computed(() => {
-    switch(fileList.value.length) {
-      case 0:
-        return '原始文件'
-      case 1:
-        return '最新文件'
-    }
-  })
-
   const fileUpload = async (file: any) => {
     console.log('1')
     const loading = ElLoading.service({
@@ -190,11 +174,7 @@
       console.log('xlsx', type)
     }
     
-    fileList.value.push({
-      type,
-      data,
-      name
-    })
+    fileList.value.push({ type, data, name })
 
     setTimeout(() => {
       loading.close()
@@ -204,10 +184,7 @@
   const parserXmlData = async (fileType: 'xml' | 'xlsx', fileData: string) => {
     const { data, message, code } = await $fetch(`/api/parser/${fileType}`, {
       method: "post",
-      body: {
-        fileType,
-        fileData
-      }
+      body: { fileType, fileData }
     })
     if (code === 200) {
       return data || {}

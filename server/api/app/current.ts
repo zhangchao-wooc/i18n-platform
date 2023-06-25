@@ -1,10 +1,8 @@
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   
-
   const currentAppInfo: any = await useStorage().getItem(`redis:${query.uuid}-appInfo`) || {}
   const currentAppData = await useStorage().getItem(`redis:${query.uuid}-current`) || {}
-  console.log(typeof currentAppData)
 
   if(Object.keys(currentAppInfo).length === 0) {
     return {
@@ -13,6 +11,7 @@ export default defineEventHandler(async (event) => {
       message: '应用不存在！'
     }
   } else if(currentAppData) {
+    console.log('return')
     return {
       code: 200,
       data: currentAppData,

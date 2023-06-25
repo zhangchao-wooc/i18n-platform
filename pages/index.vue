@@ -58,7 +58,7 @@
           <el-input v-model="form.desc" autocomplete="off" />
         </el-form-item>
         <el-form-item>
-          <template style="display: flex; justify-content: center;">
+          <template style="width: 100%; display: flex; justify-content: center;">
             <el-button type="primary" @click="isEditApp ? editApp() : create()">
               提交
             </el-button>
@@ -205,14 +205,14 @@
 
 <style lang="scss" scoped>
   .home {
-    padding: 0 10px;
     &-header {
-      height: 80px;
+      padding: 10px;
       display: grid;
       align-items: center;
       justify-content: end;
     }
     &-list {
+      padding: 10px;
       display: grid;
       grid-template-columns: repeat(auto-fill, 220px);
       grid-template-rows: 250px;

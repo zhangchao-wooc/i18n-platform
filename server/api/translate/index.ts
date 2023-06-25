@@ -32,11 +32,11 @@ export default defineEventHandler(async (event) => {
 })
 
 const md5 = (text: string) => {
-    return crypto.createHash('md5').update(text).digest('hex');
+  return crypto.createHash('md5').update(text).digest('hex');
 };
 
 const generateSign = (q: string) => {
-    return md5(appid + q + salt + appSecret)
+  return md5(appid + q + salt + appSecret)
 }
 
 const translate = async (value: string, sourceLang: string, targetLang: string) => {
