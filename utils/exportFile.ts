@@ -68,6 +68,7 @@ export const exportFile = ({data, name, type = 'json'}: DowmloadUtilsType) => {
 }
 
 export const exportXlxsFile = (rows: Record<string, any>[], fileName: string) => {
+  console.log('rows', rows)
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'i18n');

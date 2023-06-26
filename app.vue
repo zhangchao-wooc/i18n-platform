@@ -6,6 +6,8 @@
 
 <script lang="ts" setup>
   import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+  import VueVirtualScroller from 'vue-virtual-scroller'
+  import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
   // You might choose this based on an API call or logged-in status
   const layout = "main-content";
   
@@ -13,6 +15,7 @@
   for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     nuxtApp.vueApp.component(key, component)
   }
+  nuxtApp.vueApp.use(VueVirtualScroller)
 </script>
 
 <style lang="scss">

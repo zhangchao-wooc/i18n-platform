@@ -5,11 +5,11 @@
       <header class="index-header">
         <div class="index-header-left">
           <el-button type="primary"  class="index-header-left-item" @click="back">返回</el-button>
-          <el-popconfirm :title="`确认删除 ${selectionList.length} 条 code ?`" confirm-button-text="确认" cancel-button-text="取消" @confirm="batchDelete">
+          <!-- <el-popconfirm :title="`确认删除 ${selectionList.length} 条 code ?`" confirm-button-text="确认" cancel-button-text="取消" @confirm="batchDelete">
             <template #reference>
               <el-button type="primary" :disabled="selectionList.length === 0" >批量删除</el-button>
             </template>
-          </el-popconfirm>
+          </el-popconfirm> -->
           <el-button type="primary" @click="editCodeDialogOpen(false)">添加 code</el-button>
           <el-button type="primary" @click="deleteLanguageDialogVisible = true">删除语言</el-button>
         </div>
@@ -54,7 +54,15 @@
           </el-collapse>
         </div>
         <!-- code list -->
-        <el-table :data="tableData" stripe style="width: 100%" :cell-class-name="tableCellClassName" @selection-change="(selection) => selectionList = selection" size="small">
+        <!-- <el-table 
+          :data="tableData" 
+          stripe
+          style="width: 100%"
+          :cell-class-name="tableCellClassName" 
+          @selection-change="(selection) => selectionList = selection" 
+          size="small"
+          row-key="code"
+        >
           <el-table-column  type="index" width="50" />
           <el-table-column type="selection" width="55" />
           <el-table-column label="Code" prop="code"  />
@@ -75,7 +83,52 @@
               <el-button type="primary" size="small" @click="editCodeDialogOpen(true, scope.row)"><el-icon><Edit /></el-icon></el-button>
             </template>
           </el-table-column>
-        </el-table>
+        </el-table> -->
+        <DynamicScroller
+          :items="tableData"
+          :min-item-size="54"
+          key-field="code"
+          class="index-section-scroller"
+        >
+          <template #before>
+            <div class="index-section-scroller-header">
+              <div>code</div>
+              <template v-for="column in columns" :key="column.label">
+                <div>{{ column.label }}</div>
+              </template>
+            </div>
+            
+          </template>
+          <template v-slot="{ item, index, active }">
+            <DynamicScrollerItem
+              :item="item"
+              :active="active"
+              :size-dependencies="[
+                item.code,
+              ]"
+              :data-index="index"
+            >
+              <div class="index-section-scroller-item">
+                <div class="index-section-scroller-item-cell">{{ item['code'] }}</div>
+                <template v-for="column in columns" :key="column.label">
+                  <div class="index-section-scroller-item-cell"  v-if="item[column.prop]?.length === 0 ">
+                    <el-icon><WarningFilled class="cell-warning"/></el-icon>
+                  </div>
+                  <div v-else class="index-section-scroller-item-cell">{{ item[column.prop] }}</div>
+                  <!-- <el-input style="flex: 1" type="textarea" :model-value="item[column.prop]" autosize @input="(e) => changeInput(e, scope.row, item)" /> -->
+                </template>
+                <div class="index-section-scroller-item-handle">
+                  <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', index)">
+                    <template #reference>
+                      <el-button type="danger" size="small"><el-icon><Delete /></el-icon></el-button>
+                    </template>
+                  </el-popconfirm>
+                  <el-button type="primary" size="small" @click="editCodeDialogOpen(true, item)"><el-icon><Edit /></el-icon></el-button>
+                </div>
+              </div>
+            </DynamicScrollerItem>
+          </template>
+        </DynamicScroller>
       </section>
       <!-- </el-tab-pane> -->
     <!-- </el-tabs> -->
@@ -213,6 +266,15 @@
       const { columns: resultClumns, tableData: resultTableData } = standerdJson2Table(data)
       columns.value = resultClumns
       tableData.value = resultTableData
+      // tableData.value = []
+      // let time = 0
+      // for(const item of resultTableData) {
+      //   setTimeout(() => {
+      //     tableData.value.push(item)
+      //   }, time)
+      //   time += 1
+      // }
+      
       
     } else {
       ElMessage({ message, type: 'error' })
@@ -376,6 +438,7 @@
 
     switch (fileType) {
       case 'xlsx':
+        console.log(tableData.value)
         exportXlxsFile(tableData.value, 'i18n')
         break;
       case 'json':
@@ -393,9 +456,7 @@
         break;
     }
 
-    setTimeout(() => {
-      loading.close()
-    }, 1000)
+    loading.close()
   }
 
   const fileParse = async (fileData: any, fileName: string, fileType: FileListType['type']) => {
@@ -517,12 +578,10 @@
     }
   }
 
-  const handleTable = (handle: string, data: any, ) => {
-    console.log('handleTable', data, handle)
+  const handleTable = (handle: string, index: number, ) => {
     if (handle === 'DELETE') {
-      tableData.value.splice(data.$index, 1)
-    } else if (handle === 'ADD') {
-      tableData.value.push(data)
+      tableData.value.splice(index, 1)
+      ElMessage({ message: "删除成功", type: 'success' })
     }
   }
 
@@ -590,7 +649,7 @@
     const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
     tableData.value = resultData
     columns.value = resultClumns
-    
+    ElMessage({ message: `语言 ${selectedDeleteLangList.value.join(', ')} 删除成功`, type: 'success' })
     deleteLanguageDialogClose()
   }
 
@@ -750,6 +809,47 @@
         z-index: 10;
         background-color: #fff;
         box-sizing: border-box;
+      }
+      &-scroller {
+        padding: 0 10px 10px;
+        font-size: 12px;
+        &-header {
+          display: flex;
+          font-size: 14px;
+          border-bottom: 1px solid var(--el-border-color-lighter);
+
+          &::after {
+            content: '';
+            display: block;
+            width: 84px;
+          }
+          div {
+            flex: 1;
+            align-content: center;
+            padding: 10px 3px;
+          }
+        }
+        &-item {
+          padding: 3px;
+          display: flex;
+          align-items: center;
+          border-bottom: 1px solid var(--el-border-color-lighter);
+          transition: all 0.3s;
+          &:hover {
+            background-color: var(--el-fill-color-light);
+          }
+          &-cell {
+            flex: 1;
+            padding: 0 3px;
+            flex-shrink: 0;
+            word-break:break-all;
+            .cell-warning {
+              color: var(--el-color-warning);
+              font-size: 14px;
+            }
+          }
+          
+        }
       }
     }
    

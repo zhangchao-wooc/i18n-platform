@@ -17,7 +17,10 @@
     </div>
 
     <div class="convert-section">
-      <w-upload class="convert-section-upload" type="button" buttonText="上传文件" :accept="accept" :fileUpload="fileUpload"  />
+      <pre v-if="Object.keys(sourceData.data).length > 0" class="json-show">{{ JSON.stringify(sourceData.data, null, 4) }}</pre>
+      <el-empty v-else>
+        <w-upload class="convert-section-upload" type="button" buttonText="上传文件" :accept="accept" :fileUpload="fileUpload"  />
+      </el-empty>
     </div>
     
   </div>
@@ -34,7 +37,7 @@
   })
 
   interface FileListType {
-    data: Record<string, string>
+    data: Record<string, any>
     type: 'xml' | 'xlsx' | 'json'
     name: string
   }
@@ -62,7 +65,7 @@
 
   const exportFileTypeList = ref<Record<string, FileListType['type']>[]>(initExportFileTypeList)
   const accept = ref(initAccept)
-  const fileData = ref<FileListType>({
+  const sourceData = ref<FileListType>({
     data: {},
     type: 'json',
     name: ''
@@ -75,52 +78,45 @@
       text: '文件处理中...',
       background: 'rgba(0, 0, 0, 0.7)',
     })
-
     const lastFileData = file[file.length - 1]
-    console.log(lastFileData)
-    const type: FileListType['type'] = fileTypeMap[lastFileData['file']['type']]
+    const fileData = lastFileData['fileContent']
+    const fileName = lastFileData['file']['name'].split('.')[0]
+    const fileType: FileListType['type'] = fileTypeMap[lastFileData['file']['type']]
     
-    if(typeof type !== 'string') return ElNotification({
-        title: `文件类型错误`,
-        message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${lastFileData['file']['type']}`),
-        type: 'error',
-      })
+    if(typeof fileType !== 'string') return ElNotification({
+      title: `文件类型错误`,
+      message: h('i', { style: 'color: teal' },  `不支持的文件类型: ${lastFileData['file']['type']}`),
+      type: 'error',
+    })
     
-    let data: Record<string, string> = {}
+    let data: Record<string, any> = {}
 
-    if(type === 'json') {
-      data = JSON.parse(lastFileData['fileContent'])
+    if(fileType === 'json') {
+      Reflect.set(data, fileName, JSON.parse(fileData))
     }
 
-    if(type === 'xml') {
-      const result = await parserData(type, lastFileData['fileContent'])
-      console.log('xml', result)
-      data = result
+    if(fileType === 'xml') {
+      const result = await parserData(fileType, fileData)
+      Reflect.set(data, fileName, result)
+      
     }
 
-    if(type === 'xlsx') {
-      // const result = await parserData(type, lastFileData['fileContent'])
-      // data = result
-      const data1 = new Uint8Array(lastFileData['fileContent']);
+    if(fileType === 'xlsx') {
+      const data1 = new Uint8Array(fileData);
       const workbook = XLSX.read(data1, { type: 'array'});
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const sheet_to_json = XLSX.utils.sheet_to_json(sheet);
       data = xlsx2Json(sheet_to_json)
-      console.log('workbook', data)
     }
-    
-    const name = lastFileData['file']['name'].split('.')[0]
 
-    fileData.value = {
-      type,
+    sourceData.value = {
+      type: fileType,
       data,
-      name
+      name: fileName
     }
 
-    setTimeout(() => {
-      loading.close()
-    }, 1000)
+    loading.close()
   }
 
   const parserData = async (fileType: 'xml' | 'xlsx', fileData: any) => {
@@ -141,15 +137,23 @@
   }
 
   const classificationExport = async (fileType: FileListType['type']) => {
-    switch (fileData.value.type) {
+    const { tableData } = standerdJson2Table(sourceData.value.data)
+    
+    const result = new Proxy(tableData, {})
+    console.log(JSON.stringify(sourceData.value.data, null, 4))
+    switch (sourceData.value.type) {
       case 'xlsx':
-        for ( const item in fileData.value.data ) {
-          await fileParse(fileData.value.data[item], item, fileType)
-        }
+        exportXlxsFile(result, sourceData.value.name)
         break;
       case 'json':
+        for ( const item in sourceData.value.data ) {
+          exportFile({data: JSON.stringify(sourceData.value.data[item], null, 4), name: item, type: fileType})
+        }
+        break;
       case 'xml':
-        await fileParse(fileData.value.data, fileData.value.name, fileType)
+        for ( const item in sourceData.value.data ) {
+           await (sourceData.value.data[item], sourceData.value.name, fileType)
+        }
         break;
       default: 
         console.log('不支持的文件类型')
@@ -187,11 +191,13 @@
     }
 
     &-section {
+      padding: 10px;
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
       height: calc(100% - 32px - 20px);
+      box-sizing: border-box;
       &-upload {
         position: absolute;
         top: 50%;
@@ -199,5 +205,15 @@
         transform: translate(-50%, -50%);
       }
     }
+  }
+
+  .json-show {
+    margin: 0;
+    background-color: #000;
+    color: #fff;
+    padding: 10px;
+    width: 100%;
+    height: 95%;
+    overflow: auto;
   }
 </style>

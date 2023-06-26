@@ -159,7 +159,18 @@
 
     if(type === 'json') {
       // Reflect.set(data, name, JSON.parse(fielData['fileContent']))
-      data = JSON.parse(fielData['fileContent'])
+      const result = toStanderdJson(JSON.parse(fielData['fileContent']), name)
+      if (isString(result)) {
+        ElNotification({
+          title: `文件类型错误`,
+          message: h('i', { style: 'color: teal' },  result),
+          type: 'error',
+        })
+      } else {
+        //@ts-ignore
+        data = result[name]
+      }
+      // data = JSON.parse(fielData['fileContent'])
     }
 
     if(type === 'xml') {
@@ -245,7 +256,7 @@
 
   const contrast = () => {
     dialogVisible.value = true
-    // console.log(diffStanderdJsonCode(fileList.value[0].data, fileList.value[1].data))
+    console.log(fileList.value[0].data, fileList.value[1].data)
     diffResult.value = diffJson(fileList.value[0].data, fileList.value[1].data)
   }
 </script>
