@@ -656,15 +656,17 @@
   "resolved" "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.194.tgz"
   "version" "4.14.194"
 
-"@types/node@*":
-  "integrity" "sha512-DqJociPbZP1lbZ5SQPk4oag6W7AyaGMO6gSfRwq3PWl4PXTwJpRQJhDq4W0kzrg3w6tJ1SwlvGZ5uKFHY13LIg=="
-  "resolved" "https://registry.npmjs.org/@types/node/-/node-20.2.1.tgz"
-  "version" "20.2.1"
-
-"@types/node@^18":
+"@types/node@*", "@types/node@^18":
   "integrity" "sha512-uZRomboV1vBL61EBXneL4j9/hEn+1Yqa4LQdpGrKmXFyJmVfWc9JV9+yb2AlnOnuaDnb2PDO3hC6/LKmzJxP1A=="
   "resolved" "https://registry.npmjs.org/@types/node/-/node-18.16.13.tgz"
   "version" "18.16.13"
+
+"@types/properties-parser@^0.3.0":
+  "integrity" "sha512-8wK33jr6tdaxQJ3TAGUkJcOD1iTvbOeR4Kou9cnZIs558K2tfcl2dAstKB38Cl2aoXqr/YPWF6H0S4EjIsJVtA=="
+  "resolved" "https://registry.npmjs.org/@types/properties-parser/-/properties-parser-0.3.0.tgz"
+  "version" "0.3.0"
+  dependencies:
+    "@types/node" "*"
 
 "@types/resolve@1.20.2":
   "integrity" "sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q=="
@@ -3556,6 +3558,11 @@
   dependencies:
     "kleur" "^3.0.3"
     "sisteransi" "^1.0.5"
+
+"properties-parser@^0.6.0":
+  "integrity" "sha512-qvr2cSmoA0dln0MARAKwBzPkkXn7FqwX+RVVNpMdMJc7rt9mqO2cXwluxtux9fHrLhjnPFaQkS8BM0kFrTCnSw=="
+  "resolved" "https://registry.npmjs.org/properties-parser/-/properties-parser-0.6.0.tgz"
+  "version" "0.6.0"
 
 "protocols@^2.0.0", "protocols@^2.0.1":
   "integrity" "sha512-/XJ368cyBJ7fzLMwLKv1e4vLxOju2MNAIokcr7meSaNcVbWz/CPcW22cP04mwxOErdA5mwjA8Q6w/cdAQxVn7Q=="

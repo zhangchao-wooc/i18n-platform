@@ -1,139 +1,106 @@
 <template>
   <div class="index">
-    <!-- <el-tabs v-model="activeTab" class="index-tabs" @tab-click="tabClick"> -->
-      <!-- <el-tab-pane class="index-tabs-pane" v-for="item in languageList" :key="item.label" :label="item.label" :name="item.value"> -->
-      <header class="index-header">
-        <div class="index-header-left">
-          <el-button type="primary"  class="index-header-left-item" @click="back">返回</el-button>
-          <!-- <el-popconfirm :title="`确认删除 ${selectionList.length} 条 code ?`" confirm-button-text="确认" cancel-button-text="取消" @confirm="batchDelete">
-            <template #reference>
-              <el-button type="primary" :disabled="selectionList.length === 0" >批量删除</el-button>
-            </template>
-          </el-popconfirm> -->
-          <el-button type="primary" @click="editCodeDialogOpen(false)">添加 code</el-button>
-          <el-button type="primary" @click="deleteLanguageDialogVisible = true">删除语言</el-button>
-        </div>
-      
-        <div class="index-header-control">
-          <w-upload class="index-header-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
-          <el-dropdown class="index-header-control-export" :disabled="tableData.length === 0" split-button type="primary">
-            导出文件
-            <template #dropdown>
-              <el-dropdown-menu>
-                <template v-for="item in exportFileTypeList" :key="item.value" >
-                  <el-dropdown-item @click="classificationExport(item.value)">
-                    <div >{{ item.label }}</div>
-                  </el-dropdown-item>
-                </template>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
-          <el-button type="primary" :disabled="tableData.length === 0" @click="save">保存</el-button>
-          <el-button type="primary" :disabled="tableData.length === 0" @click="publish">发布</el-button>
-        </div>
-      </header>
+    <header class="index-header">
+      <div class="index-header-left">
+        <el-button type="primary" class="index-header-left-item" @click="back">返回</el-button>
+        <!-- <el-popconfirm :title="`确认删除 ${selectionList.length} 条 code ?`" confirm-button-text="确认" cancel-button-text="取消" @confirm="batchDelete">
+          <template #reference>
+            <el-button type="primary" :disabled="selectionList.length === 0" >批量删除</el-button>
+          </template>
+        </el-popconfirm> -->
+      </div>
+    
+      <div class="index-header-control">
+        <el-button type="primary"  @click="editCodeDialogOpen(false)">添加 code</el-button>
+        <el-button type="primary"  @click="deleteLanguageDialogVisible = true">删除语言</el-button>
+        <w-upload class="index-header-control-upload" type="button" :accept="accept" :fileUpload="fileUpload" />
+        <el-dropdown class="index-header-control-export" :disabled="tableData.length === 0" split-button type="primary">
+          导出文件
+          <template #dropdown>
+            <el-dropdown-menu>
+              <template v-for="item in exportFileTypeList" :key="item.value" >
+                <el-dropdown-item @click="classificationExport(item.value)">
+                  <div >{{ item.label }}</div>
+                </el-dropdown-item>
+              </template>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button type="primary" :disabled="tableData.length === 0" @click="batchTranslate">批量翻译</el-button>
+        <el-button type="primary" :disabled="tableData.length === 0" @click="save">保存</el-button>
+        <el-button type="primary" :disabled="tableData.length === 0" @click="publish">发布</el-button>
+      </div>
+    </header>
 
-      <section class="index-section">
-        <div class="index-section-control">
-          <el-collapse>
-            <el-collapse-item title="应用详情" name="1">
-              <div class="index-header-left-item">
-                <b>应用名称：</b>
-                <span>{{ appInfo?.name || '-'}}</span>
-              </div>
-              <div  class="index-header-left-item">
-                <b>多语言版本：</b>
-                <span>{{ appInfo?.version || '-'}}</span>
-              </div>
-              <div  class="index-header-left-item">
-                <b>词条总数：</b>
-                <span>{{ tableData.length }}</span>
-              </div>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-        <!-- code list -->
-        <!-- <el-table 
-          :data="tableData" 
-          stripe
-          style="width: 100%"
-          :cell-class-name="tableCellClassName" 
-          @selection-change="(selection) => selectionList = selection" 
-          size="small"
-          row-key="code"
-        >
-          <el-table-column  type="index" width="50" />
-          <el-table-column type="selection" width="55" />
-          <el-table-column label="Code" prop="code"  />
-          <template v-for="item in columns" :key="item.prop" >
-            <el-table-column v-bind="item">
-              <template #default="scope">
-                <el-input type="textarea" :model-value="scope.row[item.prop]" autosize @input="(e) => changeInput(e, scope.row, item)" />
-              </template>
-            </el-table-column>
-          </template>
-          <el-table-column label="操作" prop="handle" width="100px" fixed='right'>
-            <template #default="scope" >
-              <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', scope)">
-                <template #reference>
-                  <el-button type="danger" size="small"><el-icon><Delete /></el-icon></el-button>
-                </template>
-              </el-popconfirm>
-              <el-button type="primary" size="small" @click="editCodeDialogOpen(true, scope.row)"><el-icon><Edit /></el-icon></el-button>
-            </template>
-          </el-table-column>
-        </el-table> -->
-        <DynamicScroller
-          :items="tableData"
-          :min-item-size="54"
-          key-field="code"
-          class="index-section-scroller"
-        >
-          <template #before>
-            <div class="index-section-scroller-header">
-              <div>code</div>
-              <template v-for="column in columns" :key="column.label">
-                <div>{{ column.label }}</div>
-              </template>
+    <section class="index-section">
+      <div class="index-section-control">
+        <el-collapse>
+          <el-collapse-item title="应用详情" name="1">
+            <div class="index-header-left-item">
+              <b>应用名称：</b>
+              <span>{{ appInfo?.name || '-'}}</span>
             </div>
-            
-          </template>
-          <template v-slot="{ item, index, active }">
-            <DynamicScrollerItem
-              :item="item"
-              :active="active"
-              :size-dependencies="[
-                item.code,
-              ]"
-              :data-index="index"
-            >
-              <div class="index-section-scroller-item">
-                <div class="index-section-scroller-item-cell">{{ item['code'] }}</div>
-                <template v-for="column in columns" :key="column.label">
-                  <div class="index-section-scroller-item-cell"  v-if="item[column.prop]?.length === 0 ">
-                    <el-icon><WarningFilled class="cell-warning"/></el-icon>
-                  </div>
-                  <div v-else class="index-section-scroller-item-cell">{{ item[column.prop] }}</div>
-                  <!-- <el-input style="flex: 1" type="textarea" :model-value="item[column.prop]" autosize @input="(e) => changeInput(e, scope.row, item)" /> -->
-                </template>
-                <div class="index-section-scroller-item-handle">
-                  <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', index)">
-                    <template #reference>
-                      <el-button type="danger" size="small"><el-icon><Delete /></el-icon></el-button>
-                    </template>
-                  </el-popconfirm>
-                  <el-button type="primary" size="small" @click="editCodeDialogOpen(true, item)"><el-icon><Edit /></el-icon></el-button>
+            <div  class="index-header-left-item">
+              <b>多语言版本：</b>
+              <span>{{ appInfo?.version || '-'}}</span>
+            </div>
+            <div  class="index-header-left-item">
+              <b>词条总数：</b>
+              <span>{{ tableData.length }}</span>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+      <!-- code list -->
+      <DynamicScroller
+        :items="tableData"
+        :min-item-size="54"
+        key-field="code"
+        class="index-section-scroller"
+      >
+        <template #before>
+          <div class="index-section-scroller-header">
+            <div>code</div>
+            <template v-for="column in columns" :key="column.label">
+              <div>{{ column.label }}</div>
+            </template>
+          </div>
+        </template>
+        <template v-slot="{ item, index, active }">
+          <DynamicScrollerItem
+            :item="item"
+            :active="active"
+            :size-dependencies="[
+              item.code,
+            ]"
+            :data-index="index"
+          >
+            <div class="index-section-scroller-item">
+              <div class="index-section-scroller-item-cell">{{ item['code'] }}</div>
+              <template v-for="column in columns" :key="column.label">
+                <div class="index-section-scroller-item-cell"  v-if="item[column.prop]?.length === 0 ">
+                  <el-icon><WarningFilled class="cell-warning"/></el-icon>
                 </div>
+                <div v-else class="index-section-scroller-item-cell">{{ item[column.prop] }}</div>
+                <!-- <el-input style="flex: 1" type="textarea" :model-value="item[column.prop]" autosize @input="(e) => changeInput(e, scope.row, item)" /> -->
+              </template>
+              <div class="index-section-scroller-item-handle">
+                <el-popconfirm title="确认删除?" confirm-button-text="确认" cancel-button-text="取消" @confirm="handleTable('DELETE', index)">
+                  <template #reference>
+                    <el-button type="danger" size="small"><el-icon><Delete /></el-icon></el-button>
+                  </template>
+                </el-popconfirm>
+                <el-button type="primary" size="small" @click="editCodeDialogOpen(true, item)"><el-icon><Edit /></el-icon></el-button>
               </div>
-            </DynamicScrollerItem>
-          </template>
-        </DynamicScroller>
-      </section>
-      <!-- </el-tab-pane> -->
-    <!-- </el-tabs> -->
+            </div>
+          </DynamicScrollerItem>
+        </template>
+      </DynamicScroller>
+    </section>
+
     <w-diff v-if="Object.keys(diffArealyExistLangResult).length !== 0" :data="diffArealyExistLangResult" />
     <w-translate v-if="batchTranslateDialogVisible" :cb="batchTranslateCb" :data="tableData" />
+
     <!-- edit code -->
     <el-dialog :model-value="codeDialogFormVisible" :title="`${isEditCode ? '编辑' : '新增' } code`" width="800" @close="editCodeDialogClose(codeRuleFormRef)">
       <el-form :model="codeForm" :rules="codeFormrules" ref="codeRuleFormRef">
@@ -151,6 +118,7 @@
         </el-form-item>
       </el-form>
     </el-dialog>
+
     <!-- delete language | table column -->
     <el-dialog :model-value="deleteLanguageDialogVisible" title="删除语言" width="400" @close="deleteLanguageDialogClose">
       <el-select v-model="selectedDeleteLangList" placeholder="请选择要删除的语言" multiple clearable style="width: 100%">
@@ -173,11 +141,12 @@
   import * as XLSX from 'xlsx';
   import type { Action } from 'element-plus'
   import CryptoJS from 'crypto-js'
+  import * as propertiesParse from 'properties-parser'
   import type { FormInstance, FormRules } from 'element-plus' 
 
   interface FileListType {
     data: Record<string, string>
-    type: 'xml' | 'xlsx' | 'json'
+    type: 'xml' | 'xlsx' | 'json' | 'properties'
     name: string
   }
   const fileTypeMap: Record<string, FileListType['type']> = {
@@ -185,7 +154,7 @@
     'text/xml': 'xml',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx'
   }
-  const initAccept = '.xml,.json,.xlsx'
+  const initAccept = '.xml,.json,.xlsx,.properties'
   const initExportFileTypeList: Record<string, FileListType['type']>[] = [
     {
       label: 'json',
@@ -291,7 +260,7 @@
     for (const item of file) {
       const fileData = item['fileContent']
       const fileName = item['file']['name'].split('.')[0]
-      const fileType: FileListType['type'] = fileTypeMap[item['file']['type']]
+      const fileType = item['file']['name'].split('.')[1]
       if(!isString(fileType)) {
         return ElNotification({
           title: `文件类型错误`,
@@ -314,6 +283,7 @@
           } else {
             //@ts-ignore
             standerdJson = result
+            console.log(standerdJson)
           }
           break;
         case 'xml':
@@ -339,6 +309,11 @@
           standerdJson = xlsx2Json(sheet_to_json)
           console.log('xlsx', standerdJson)
           break;
+        case 'properties':
+          const parserPropertiesResult = propertiesParse.parse(item['fileContent'])
+          standerdJson[fileName] = parserPropertiesResult
+          console.log('properties', standerdJson)
+        break;
         default:
           ElNotification({
             title: `文件类型错误`,
@@ -811,8 +786,10 @@
         box-sizing: border-box;
       }
       &-scroller {
+        position: relative;
         padding: 0 10px 10px;
         font-size: 12px;
+        overflow-x: auto;
         &-header {
           display: flex;
           font-size: 14px;
@@ -825,28 +802,37 @@
           }
           div {
             flex: 1;
+            min-width: 300px;
             align-content: center;
             padding: 10px 3px;
           }
         }
         &-item {
-          padding: 3px;
+          
+          padding: 10px 3px;
           display: flex;
           align-items: center;
           border-bottom: 1px solid var(--el-border-color-lighter);
           transition: all 0.3s;
+          
+          
           &:hover {
             background-color: var(--el-fill-color-light);
           }
           &-cell {
             flex: 1;
-            padding: 0 3px;
+            min-width: 300px;
+            padding: 0 5px;
             flex-shrink: 0;
             word-break:break-all;
             .cell-warning {
               color: var(--el-color-warning);
               font-size: 14px;
             }
+          }
+          &-handle {
+            position: sticky;
+            right: 0;
           }
           
         }

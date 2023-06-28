@@ -1,6 +1,6 @@
 <template>
   <div class="w-upload">
-    <el-button type="primary" class="w-upload-button" @click="handleUpload">
+    <el-button type="primary" class="w-upload-button" :size="props.size" @click="handleUpload">
       {{ props.buttonText }}
       <el-icon  class="w-upload-button-icon"><UploadFilled /></el-icon>
     </el-button>
@@ -30,6 +30,10 @@
     type: {
       type: String,
       default: 'button'
+    },
+    size: {
+      type: String,
+      default: 'default'
     },
     buttonText: {
       type: String,
@@ -85,6 +89,8 @@
       });
 
       const suffix = file.name.split('.')[1]
+
+      console.log('upload', suffix, file)
       
       // 开始读取文件
       if (suffix === 'xlsx') {
