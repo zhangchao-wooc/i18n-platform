@@ -344,19 +344,16 @@
         const langExist = columns.value.some(oldData => oldData.prop === lang)
         // import language file alrealy exist, record
         if (langExist) {
-          /**
-            * if language is not repeat, merge clumns and table data.
-            *   Otherwise, display data differences.
-            */
-          mergeSameLangCheck(diffJson(currentTable2StanderdJson[lang], standerdJson[lang]), standerdJson, lang )
-        } else {
-          // import language file is not exist, check code
+          // import language file is not exist, check code.
           // Diff between "table code" and "new File".
-          mergeAddCodeCheck(diffCode(currentTable2StanderdJson[columns.value[0].prop], standerdJson[lang]), standerdJson, lang)
+          mergeSameLangCheck(DiffMergeData(currentTable2StanderdJson[columns.value[0].prop], standerdJson[lang]), standerdJson, lang)
+        } else {
+          // if language is not exist, merge clumns and table data.
+          mergeNewLangCheck(DiffEmptyValueCode(standerdJson[lang]), standerdJson, lang)
         }
       } else {
         const newTableData: Record<string, any> = {}
-          newTableData[lang] = standerdJson[lang]
+        newTableData[lang] = standerdJson[lang]
         const {columns: resultClumns, tableData: resultData} = standerdJson2Table(newTableData)
         columns.value = resultClumns
         tableData.value = resultData
@@ -454,18 +451,29 @@
   }
 
   // check and merge "code" for language data
-  const mergeAddCodeCheck = (newDiffCodeResult: Record<string, any>, standerdJson: Record<string, any>, lang: string ) => {
+  const mergeSameLangCheck = (newDiffCodeResult: Record<string, any>, standerdJson: Record<string, any>, lang: string ) => {
     let addCodeLength = Object.keys(newDiffCodeResult.add).length
+    let changeValueCodeLength = Object.keys(newDiffCodeResult.change).length
+    let emptyValueCodeLength = Object.keys(newDiffCodeResult.empty).length
 
-    if (addCodeLength !== 0) {
+    if(addCodeLength === 0 && changeValueCodeLength === 0 && emptyValueCodeLength ===0) {
+      console.log(`${lang} 文件 code 与已有 code 相同, 开始合并文件！`)
+      const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+      currentTable2StanderdJson[lang] = standerdJson[lang]
+      const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+      columns.value = resultClumns
+      tableData.value = resultData
+    } else {
       ElMessageBox.alert(
         `
           <div>
-            <p>新增 code 总数：${addCodeLength}</p>
+            <p>新增 code 数：${addCodeLength}</p>
+            <p>code 值变更数：${changeValueCodeLength}</p>
+            <p>code 值变为空数：${emptyValueCodeLength}</p>
             <pre style="padding: 10px; background: #000; color: #ccc">${JSON.stringify(newDiffCodeResult, null, 4)}</pre>
           </div>
         `, 
-        '上传文件新增 Code 如下， 是否合并 ？', 
+        '新文件 Code 变更如下， 是否合并 ？', 
         {
           showClose: false,
           customStyle: { maxWidth: '80vw' },
@@ -483,50 +491,37 @@
                   currentTable2StanderdJson[language][newCode] = ''
                 }
               }
-              currentTable2StanderdJson[lang] = standerdJson[lang]
+              for(const code in newDiffCodeResult.change) {
+                  currentTable2StanderdJson[lang][code] = newDiffCodeResult.change[code].newValue
+                }
               const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
               columns.value = resultClumns
               tableData.value = resultData
-              console.log(resultData)
             } else if( action === 'cancel') {
               // 放弃合并
             }
           },
         }
       )
-    } else {
-      console.log(`${lang} 文件 code 与已有 code 相同, 开始合并文件！`)
-      const currentTable2StanderdJson = table2StanderdJson(tableData.value)
-      currentTable2StanderdJson[lang] = standerdJson[lang]
-      const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
-      columns.value = resultClumns
-      tableData.value = resultData
     }
+
   }
 
-  // check and merge for same language file 
-  const mergeSameLangCheck = (diffJsonResult: Record<string, any>, standerdJson: Record<string, any>, lang: string) => {
-    let resultLength = 0
-    for(const item in diffJsonResult) {
-      if(diffJsonResult[item].length !== 0) {
-        resultLength += diffJsonResult[item].length
-      }
-    }
+  // Check and merge for new language file.
+  const mergeNewLangCheck = (diffEmptyResult: Record<string, string>, standerdJson: Record<string, any>, lang: string) => {
+    const resultLength = Object.keys(diffEmptyResult).length
     if(resultLength != 0) {
       ElMessageBox.alert(
         `
           <div>
-            <h4>新文件变更信息</h4>
+            <h4>新文件空值校验</h4>
             <p>
-              <span>删除数量：${diffJsonResult['remove'].length}</span>
-              <span>新增数量：${diffJsonResult['add'].length}</span>
-              <span>变更数量：${diffJsonResult['change'].length}</span>
-              <span>空值数量：${diffJsonResult['empty'].length}</span>
+              <span>空值数量：${diffEmptyResult.length}</span>
             </p>
-            <pre style="padding: 10px; background: #000; color: #ccc">${JSON.stringify(diffJsonResult, null, 4)}</pre>
+            <pre style="padding: 10px; background: #000; color: #ccc">${JSON.stringify(diffEmptyResult, null, 4)}</pre>
           </div>
         `, 
-        '上传的语言类别已存在，新数据与已有数据区别如下，请选择操作！', 
+        '新文件空值校验！', 
         {
           showClose: false,
           customStyle: { maxWidth: '80vw' },
@@ -544,12 +539,18 @@
               tableData.value = resultData
             } else if( action === 'cancel') {
               // 放弃合并
+              ElMessage({ message: "已放弃合并", type: 'warning' })
             }
           },
         }
       )
     } else {
-      console.log(`${lang} 语言新文件与该语言已有文件完全相同，无需进行覆盖确认！`)
+      console.log(`${lang} 新增语言无空置，直接合并！`)
+      const currentTable2StanderdJson = table2StanderdJson(tableData.value)
+      currentTable2StanderdJson[lang] = standerdJson[lang]
+      const {columns: resultClumns, tableData: resultData} = standerdJson2Table(currentTable2StanderdJson)
+      columns.value = resultClumns
+      tableData.value = resultData
     }
   }
 
